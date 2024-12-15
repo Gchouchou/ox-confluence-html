@@ -153,14 +153,14 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
-  (format "<tr>%s</tr>" contents))
+  (when contents (format "<tr>\n%s</tr>\n" contents)))
 
 (defun ox-confluence-table-cell (table-cell contents info)
   "Transcode a TABLE-CELL element from Org to confluence storage format.
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
-  (when contents (format "<th>%s</th>" contents)))
+  (when contents (format "<th>%s</th>\n" contents)))
 
 (org-export-define-backend
     'confluence
