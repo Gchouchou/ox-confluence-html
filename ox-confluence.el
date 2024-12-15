@@ -13,92 +13,181 @@
 
 ;;; Code:
 (require 'ox-html)
+(require 'cl-lib)
 
 ;; formatting
 ;; #+BEGIN_EXAMPLE
-;;   ,*bold*                                    # <strong>bold</strong>
+;;   *bold*                                     # <strong>bold</strong>
 ;;   /italic/                                   # <em>italic</em>
-;;   =verbatim=                                 # <kbd>verbatim</kbd>
+;;   +strike-through+                           # <span style=\"text-decoration:line-through;\">strike-through</span>
+;;   _underlined_                               # <u>underline</u>
+;;   =verbatim=                                 # <code>verbatim</code>
+;;   ~code~                                     # <code>verbatim</code>
 ;; #+END_EXAMPLE
 
 (defun ox-confluence-bold (bold contents info)
-  "Transcode BOLD from Org to HTML.
+  "Transcode BOLD from Org to confluence storage format.
 
 CONTENTS is the text with bold markup.
 INFO is a plist holding contextual information."
   (when contents (format "<strong>%s</strong>" contents)))
 
 (defun ox-confluence-italic (italic contents info)
-  "Transcode ITALIC from Org to HTML.
+  "Transcode ITALIC from Org to confluence storage format.
 
 CONTENTS is the text with italic markup.
 INFO is a plist holding contextual information."
   (when contents (format "<em>%s</em>" contents)))
 
+(defun ox-confluence-strike-through (strike-through contents info)
+  "Transcode STRIKE-THROUGH from Org to confluence storage format.
+
+CONTENTS is the text with STRIKE-THROUGH markup.
+INFO is a plist holding contextual information."
+  (when contents (format "<span style=\"text-decoration:line-through;\">%s</span>" contents)))
+
+(defun ox-confluence-underline (underline contents info)
+  "Transcode UNDERLINE from Org to confluence storage format.
+
+CONTENTS is the text with italic markup.
+INFO is a plist holding contextual information."
+  (when contents (format "<u>%s</u>" contents)))
+
+
 (defun ox-confluence-verbatim (verbatim contents info)
-  "Transcode VERBATIM string from Org to HTML.
+  "Transcode VERBATIM string from Org to confluence storage format.
 
 CONTENTS is nil.
 INFO is a plist holding contextual information."
   (let ((contents (org-html-encode-plain-text
                    (org-element-property :value verbatim))))
-    (when contents (format "<kbd>%s</kbd>" contents))))
+    (when contents (format "<code>%s</code>" contents))))
 
-;; plain lists
-;; #+BEGIN_EXAMPLE
-;;   ,#+attr_html: :class this                   # <ul class="this">
-;;   - item 1                                   # <li>item 1</li>
-;;   - item 2                                   # <li>item 2</li>
-;;                                              # </ul>
+(defun ox-confluence-code (code contents info)
+  "Transcode CODE string from Org to confluence storage format.
 
-;;   + item 1                                   # <ol><li>item 1</li></ol>
-;;   - definition :: list                       # <dl><dt>definition</dt><dd>list</dd></dl>
-;; #+END_EXAMPLE
+CONTENTS is nil.
+INFO is a plist holding contextual information."
+  (let ((contents (org-html-encode-plain-text
+                   (org-element-property :value code))))
+    (when contents (format "<code>%s</code>" contents))))
 
-(defun ox-slimhtml-plain-list (plain-list contents info)
-  "Transcode a PLAIN-LIST string from Org to HTML.
+;; plain text
+
+(defun ox-confluence-plain-text (plain-text info)
+  "Transcode a PLAIN-TEXT string from Org to confluence storage format.
+
+PLAIN-TEXT is the string to transcode.
+INFO is a plist holding contextual information."
+  (org-html-encode-plain-text plain-text))
+
+;; minimal template
+(defun ox-confluence-template (contents info)
+  "Wrap exported CONTENTS in a minimal template for the confluence backend.
+
+CONTENTS is the string to be exported.
+INFO is a plist containing export options."
+  contents)
+
+(defun ox-confluence-paragraph (paragraph contents info)
+  "Transcode a PARAGRAPH element from Org to a simple paragraph wrapper.
+
+CONTENTS is the paragraph's text.
+INFO is a plist holding contextual information."
+  (format "<p>%s</p>" contents))
+
+(defun ox-confluence-section (section contents info)
+  "Transcode SECTION element from Org to confluence storage format.
+
+CONTENTS is the section.
+INFO is a plist holding contextual information"
+  contents)
+
+(defun ox-confluence-headline (headline contents info)
+  "Transcode HEADLINE from Org to confluence storage format.
+
+CONTENTS is the section as defined under the HEADLINE.
+INFO is a plist holding contextual information."
+  (let* ((text (org-export-data (org-element-property :title headline) info))
+         (level (org-export-get-relative-level headline info)))
+    (format "<h%s>%s</h%d>%s" level text level (or contents ""))))
+
+(defun ox-confluence-plain-list (plain-list contents info)
+  "Transcode a PLAIN-LIST string from Org to confluence storage format.
 
 CONTENTS is the contents of the list element.
-INFO is a plist holding contextual information."
+INFO is a plist holding contextual information.
+Currently does not support descriptive lists and filters out checkboxes."
   (when contents
     (let ((type (cl-case (org-element-property :type plain-list)
                   (ordered "ol")
-                  (unordered "ul")
-                  (descriptive "dl"))))
-      (format "<%s%s>%s</%s>" type (ox-slimhtml--attr plain-list) contents type))))
+                  (unordered "ul"))))
+      (format "<%s>%s</%s>" type (or contents "") type))))
 
-;; paragraphs
-;; #+BEGIN_EXAMPLE
-;;   ,#+attr_html: :class this                   # <p class="this">content</p>
-;;   content
-;; #+END_EXAMPLE
+(defun ox-confluence-item (item contents info)
+  "Transcode an ITEM element from Org to confluence storage format.
 
-(defun ox-slimhtml-paragraph (paragraph contents info)
-  "Transcode a PARAGRAPH element from Org to HTML.
-
-CONTENTS is the contents of the paragraph.
+CONTENTS holds the contents of the item.
 INFO is a plist holding contextual information."
-  (when contents
-    (if (or (ox-slimhtml--immediate-child-of-p paragraph 'item)
-            (ox-slimhtml--immediate-child-of-p paragraph 'special-block))
-        contents
-      (if (ox-slimhtml--has-immediate-child-of-p paragraph 'link)
-          (format "<p>%s</p>" contents)
-        (format "<p%s>%s</p>" (ox-slimhtml--attr paragraph) contents)))))
+  (format "<li>%s</li>" contents))
 
+(defun ox-confluence-quote-block (quote-block contents info)
+  "Transcode a QUOTE-BLOCK element from Org to confluence storage format.
+
+CONTENTS holds the contents of the block.
+INFO is a plist holding contextual information."
+  (format "<blockquote>%s</blockquote>" contents))
+
+;;; Table
+
+(defun ox-confluence-table (table contents info)
+  "Transcode a TABLE element from Org to confluence storage format.
+
+CONTENTS is the contents of the table.
+INFO is a plist holding contextual information."
+  (format "<table>\n<tbody>\n%s</tbody>\n</table>" contents))
+
+
+(defun ox-confluence-table-row (table-row contents info)
+  "Transcode a TABLE-ROW element from Org to confluence storage format.
+
+CONTENTS is the contents of the table.
+INFO is a plist holding contextual information."
+  (format "<tr>%s</tr>" contents))
+
+(defun ox-confluence-table-cell (table-cell contents info)
+  "Transcode a TABLE-CELL element from Org to confluence storage format.
+
+CONTENTS is the contents of the table.
+INFO is a plist holding contextual information."
+  (when contents (format "<th>%s</th>" contents)))
 
 (org-export-define-backend
     'confluence
   '((bold . ox-confluence-bold)
     (italic . ox-confluence-italic)
+    (strike-through . ox-confluence-strike-through)
+    (code . ox-confluence-code)
     (verbatim . ox-confluence-verbatim)
-    ))
-
+    (underline . ox-confluence-underline)
+    (paragraph . ox-confluence-paragraph)
+    (section . ox-confluence-section)
+    (headline . ox-confluence-headline)
+    (plain-list . ox-confluence-plain-list)
+    (item . ox-confluence-item)
+    (quote-block . ox-confluence-quote-block)
+    (table . ox-confluence-table)
+    (table-row . ox-confluence-table-row)
+    (table-cell . ox-confluence-table-cell)))
 
 ;;;###autoload
-(defun ox-confluence-export-to-html ()
+(defun ox-confluence-export ()
   "Export current buffer using ox-confluence backend."
-  )
+  (interactive)
+  (org-export-to-buffer 'confluence "*confluence*"))
+
+(org-export-string-as "hello" 'confluence)
+
 
 (provide 'ox-confluence)
 ;;; ox-confluence.el ends here
