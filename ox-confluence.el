@@ -14,6 +14,45 @@
 ;;; Code:
 (require 'ox-html)
 (require 'cl-lib)
+(require 'f)
+(require 'json)
+
+
+(defcustom ox-confluence-host nil
+  "The default confluence host used for exporting.
+It usually has the form https://confluence.com.
+/rest/api will be appended to the string so do not add it to the string."
+  :safe 'stringp
+  :type 'string
+  :group 'confluence)
+
+(defcustom ox-confluence-token nil
+  "The file that contains the API token to access confluence."
+  :safe 'file
+  :type 'file
+  :group 'confluence)
+
+;;; Confluence Curl functions
+
+(defun ox-confluence-get-page-id (title space &optional host)
+  "Queries the pageid using TITLE and SPACE.
+Uses HOST then ox-confluence-host or fails if both are nil.
+Uses curl as a backend."
+  (let* ((host (or host ox-confluence-host))
+         (token (and ox-confluence-token (f-read-text ox-confluence-token)))
+         )
+    (unless (and host token)
+      (cond
+       ((not host) (error "No host provided"))
+       ((not ox-confluence-token) (error "No token file defined"))
+       ((not token) (error "Could not read token from file %s" ox-confluence-token))))
+    (let* ((header (format "-H \"Authorization: Bearer %s\"" token))
+           (url (format "%s/rest/api/?title=%s&spaceKey=%s" host title space)))
+      (with-temp-buffer
+        (if (zerop (call-process "curl" nil (current-buffer) nil "--get" header url))
+            (progn (goto-char (point-min))
+                   (or (gethash "results" (json-parse-buffer) nil) (error "Could not locate %s in %s. Ensure that page exists" title space)))
+          (error "Error with curl"))))))
 
 ;; formatting
 ;; #+BEGIN_EXAMPLE
@@ -110,7 +149,7 @@ CONTENTS is the section as defined under the HEADLINE.
 INFO is a plist holding contextual information."
   (let* ((text (org-export-data (org-element-property :title headline) info))
          (level (org-export-get-relative-level headline info)))
-    (format "<h%s>%s</h%d>%s" level text level (or contents ""))))
+    (format "<h%s>%s</h%d>\n%s" level text level (or contents ""))))
 
 (defun ox-confluence-plain-list (plain-list contents info)
   "Transcode a PLAIN-LIST string from Org to confluence storage format.
@@ -129,14 +168,14 @@ Currently does not support descriptive lists and filters out checkboxes."
 
 CONTENTS holds the contents of the item.
 INFO is a plist holding contextual information."
-  (format "<li>%s</li>" contents))
+  (format "<li>%s</li>\n" contents))
 
 (defun ox-confluence-quote-block (quote-block contents info)
   "Transcode a QUOTE-BLOCK element from Org to confluence storage format.
 
 CONTENTS holds the contents of the block.
 INFO is a plist holding contextual information."
-  (format "<blockquote>%s</blockquote>" contents))
+  (format "<blockquote>\n%s</blockquote>\n" contents))
 
 ;;; Table stuff
 
