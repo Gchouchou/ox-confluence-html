@@ -138,7 +138,7 @@ CONTENTS holds the contents of the block.
 INFO is a plist holding contextual information."
   (format "<blockquote>%s</blockquote>" contents))
 
-;;; Table
+;;; Table stuff
 
 (defun ox-confluence-table (table contents info)
   "Transcode a TABLE element from Org to confluence storage format.
@@ -185,9 +185,6 @@ INFO is a plist holding contextual information."
   "Export current buffer using ox-confluence backend."
   (interactive)
   (org-export-to-buffer 'confluence "*confluence*"))
-
-(org-export-string-as "hello" 'confluence)
-
 
 (provide 'ox-confluence)
 ;;; ox-confluence.el ends here
