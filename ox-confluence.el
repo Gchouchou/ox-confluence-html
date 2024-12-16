@@ -74,10 +74,10 @@ It will also set ox-confluence-host for the rest of the session."
      ((and query (string-match "pageId=\\([0-9]+\\)" query)) (match-string 1 query))
      ;; URL on Confluence Cloud contains the page ID in the path under a space
      ;; https://somewhere.atlassian.net/wiki/spaces/ASPACE/pages/123456/Page+Title
-     ((and (< 6 (length segs)) (string= (nth 4 segs) "pages")) (nth 5 segs))
+     ((and (< 5 (length segs)) (string= (nth 4 segs) "pages")) (nth 5 segs))
      ;; URL on Confluence Server contains a space and page title requiring lookup
      ;; https://confluence.somewhere.com/display/ASPACE/Page+Title
-     ((and (< 3 (length segs)) (string= (nth 0 segs) "display"))
+     ((and (< 3 (length segs)) (string= (nth 1 segs) "display"))
       (ox-confluence-get-page-id (nth 3 segs) (nth 2 segs) host))
      (t (error "Unkown URL format: %s" link)))))
 
