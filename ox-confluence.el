@@ -16,12 +16,13 @@
 (require 'cl-lib)
 (require 'f)
 (require 'json)
+(require 'url-parse)
 
 
 (defcustom ox-confluence-host nil
-  "The default confluence host used for exporting.
-It usually has the form https://confluence.com.
-/rest/api will be appended to the string so do not add it to the string."
+  "The default confluence host name used for exporting.
+It usually has the form of confluence.somewhere.com or somewhere.atlassian.net
+We only want the host name so do not prepend with https or postpend with path."
   :safe 'stringp
   :type 'string
   :group 'confluence)
@@ -47,12 +48,38 @@ Uses curl as a backend."
        ((not ox-confluence-token) (error "No token file defined"))
        ((not token) (error "Could not read token from file %s" ox-confluence-token))))
     (let* ((header (format "-H \"Authorization: Bearer %s\"" token))
-           (url (format "%s/rest/api/?title=%s&spaceKey=%s" host title space)))
+           ;; doing url by hand
+           (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
       (with-temp-buffer
         (if (zerop (call-process "curl" nil (current-buffer) nil "--get" header url))
             (progn (goto-char (point-min))
                    (or (gethash "results" (json-parse-buffer) nil) (error "Could not locate %s in %s. Ensure that page exists" title space)))
           (error "Error with curl"))))))
+
+(defun ox-confluence-get-page-id-from-link (link)
+  "Parse human readable LINK and retuns the page id.
+It will also set ox-confluence-host for the rest of the session."
+  (interactive "sConfluence Page Link:")
+  (let* ((parsed-uri (url-generic-parse-url link))
+         (host (url-host parsed-uri))
+         (filename (url-filename parsed-uri))
+         (segs (string-split filename "/"))
+         (query (car (last segs)))
+         (query (when-let* ((match (string-match-p "\\?" query))) (substring query (+ match 1)))))
+    ;; set host for the rest of the session
+    (setq ox-confluence-host host)
+    (cond
+     ;; URL contains the pageId as a query arg
+     ;; https://somewhere.com/pages/viewpage.action?pageId=123456
+     ((and query (string-match "pageId=\\([0-9]+\\)" query)) (match-string 1 query))
+     ;; URL on Confluence Cloud contains the page ID in the path under a space
+     ;; https://somewhere.atlassian.net/wiki/spaces/ASPACE/pages/123456/Page+Title
+     ((and (< 6 (length segs)) (string= (nth 4 segs) "pages")) (nth 5 segs))
+     ;; URL on Confluence Server contains a space and page title requiring lookup
+     ;; https://confluence.somewhere.com/display/ASPACE/Page+Title
+     ((and (< 3 (length segs)) (string= (nth 0 segs) "display"))
+      (ox-confluence-get-page-id (nth 3 segs) (nth 2 segs) host))
+     (t (error "Unkown URL format: %s" link)))))
 
 ;; formatting
 ;; #+BEGIN_EXAMPLE
