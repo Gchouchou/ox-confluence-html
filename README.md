@@ -17,8 +17,8 @@ Confluence still supports inputing its own wiki markdown which means you can sti
 use the old [package](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el)
 in org contrib. It is no longer maintained.
 
-The alternative to converting in confluence markdown is to convert to its
-confluence html format also called confluence storage format,
+The alternative to converting to confluence markdown is to convert to the 
+confluence html format, also called confluence storage format,
 which is the format confluence uses to locally store pages.
 This means you have access to all features while exporting.
 This org exporter aims to export org files to the best of its abilities
