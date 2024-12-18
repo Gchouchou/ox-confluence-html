@@ -14,7 +14,6 @@
 ;;; Code:
 (require 'ox-html)
 (require 'cl-lib)
-(require 'f)
 (require 'json)
 (require 'url-parse)
 
@@ -40,7 +39,10 @@ We only want the host name so do not prepend with https or postpend with path."
 Uses HOST then ox-confluence-host or fails if both are nil.
 Uses curl as a backend."
   (let* ((host (or host ox-confluence-host))
-         (token (and ox-confluence-token (f-read-text ox-confluence-token)))
+         (token (and ox-confluence-token
+                     (with-temp-buffer
+                       (insert-file-contents ox-confluence-token)
+                       (buffer-string))))
          )
     (unless (and host token)
       (cond
