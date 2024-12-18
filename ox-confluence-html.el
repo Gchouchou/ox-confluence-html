@@ -127,7 +127,9 @@ Adds COMMENT to upload."
                                (when comment (format "-F \"comment=%s\"" comment))
                                (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))
     ;; not overriding existing
-    (t attachmentId))))
+    (t (progn
+         (message "Attachment %s already exists, not overriding" basename)
+         attachmentId)))))
 
 ;; formatting
 ;; #+BEGIN_EXAMPLE
@@ -292,7 +294,9 @@ INFO is a plist holding contextual information."
     (quote-block . ox-confluence-quote-block)
     (table . ox-confluence-table)
     (table-row . ox-confluence-table-row)
-    (table-cell . ox-confluence-table-cell)))
+    (table-cell . ox-confluence-table-cell)
+    (example-block . org-html-example-block)
+    (template . ox-confluence-template)))
 
 ;;;###autoload
 (defun ox-confluence-export ()
@@ -300,5 +304,5 @@ INFO is a plist holding contextual information."
   (interactive)
   (org-export-to-buffer 'confluence "*confluence*"))
 
-(provide 'ox-confluence)
+(provide 'ox-confluence-html)
 ;;; ox-confluence.el ends here
