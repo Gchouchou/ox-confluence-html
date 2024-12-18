@@ -38,20 +38,14 @@ We only want the host name so do not prepend with https or postpend with path."
   "Queries the pageid using TITLE and SPACE.
 Uses HOST then ox-confluence-host or fails if both are nil.
 Uses curl as a backend."
-  (let* ((host (or host ox-confluence-host))
+  (let* ((host (or host ox-confluence-host (error "No host found")))
          (token (and ox-confluence-token
                      (file-exists-p ox-confluence-token)
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-token)
                        (buffer-string))))
-         )
-    (unless (and host token)
-      (cond
-       ((not host) (error "No host provided"))
-       ((not ox-confluence-token) (error "No token file defined"))
-       ((not token) (error "Could not read token from file %s" ox-confluence-token))))
-    (let* ((header (format "-H \"Authorization: Bearer %s\"" token))
-           (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
+         (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
+         (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
       (with-temp-buffer
         (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" header url))
             (progn (goto-char (point-min))
@@ -59,7 +53,7 @@ Uses curl as a backend."
                      (if result
                          (gethash "id" result)
                        (error "Could not locate %s in %s. Ensure that page exists" title space))))
-          (error "Error with curl\n%s" (buffer-string)))))))
+          (error "Error with curl\n%s" (buffer-string))))))
 
 (defun ox-confluence-get-page-id-from-link (link)
   "Parse human readable LINK and retuns the page id.
