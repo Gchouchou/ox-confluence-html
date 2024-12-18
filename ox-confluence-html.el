@@ -278,6 +278,15 @@ CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
   (when contents (format "<th>%s</th>\n" contents)))
 
+(defun ox-confluence-example-block (example-block contents info)
+  "Transcode a EXAMPLE-BLOCK element from Org to HTML.
+
+CONTENTS is nil.  INFO is a plist holding contextual
+information."
+(let ((contents (org-html-encode-plain-text
+                   (org-element-property :value example-block))))
+    (when contents (format "<pre>\n%s</pre>" contents))))
+
 (org-export-define-backend
     'confluence
   '((bold . ox-confluence-bold)
@@ -295,7 +304,7 @@ INFO is a plist holding contextual information."
     (table . ox-confluence-table)
     (table-row . ox-confluence-table-row)
     (table-cell . ox-confluence-table-cell)
-    (example-block . org-html-example-block)
+    (example-block . ox-confluence-example-block)
     (template . ox-confluence-template)))
 
 ;;;###autoload
