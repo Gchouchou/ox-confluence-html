@@ -305,4 +305,4 @@ INFO is a plist holding contextual information."
   (org-export-to-buffer 'confluence "*confluence*"))
 
 (provide 'ox-confluence-html)
-;;; ox-confluence.el ends here
+;;; ox-confluence-html.el ends here
