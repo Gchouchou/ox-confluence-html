@@ -1,4 +1,4 @@
-;;; ox-confluence --- Confluence Wiki Back-End for Org Export Engine
+;;; ox-confluence-html --- Confluence Wiki Back-End for Org Export Engine
 
 ;; Author: Justin Yu <jusytinyu@gmail.com>
 ;; Keywords: confluence, wiki
@@ -252,7 +252,7 @@ INFO is a plist holding contextual information."
 
 CONTENTS holds the contents of the block.
 INFO is a plist holding contextual information."
-  (format "<blockquote>\n%s</blockquote>\n" contents))
+  (format "<blockquote>\n%s</blockquote>" contents))
 
 ;;; Table stuff
 
@@ -287,6 +287,23 @@ information."
                    (org-element-property :value example-block))))
     (when contents (format "<pre>\n%s</pre>" contents))))
 
+(defun ox-confluence-src-block (src-block contents info)
+  "Transcode a SRC-BLOCK element from Org to HTML.
+
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (let* ((lang (org-element-property :language src-block))
+         (linenumbers (org-element-property :number-lines src-block))
+         (name (org-element-property :name src-block))
+         (contents (org-element-property :value src-block)))
+    (concat
+     "<ac:structured-macro ac:name=\"code\" ac:schema-version=\"1\">\n"
+     (format "<ac:parameter ac:name=\"language\">%s</ac:parameter>\n" lang)
+     (when linenumbers "<ac:parameter ac:name=\"linenumbers\">true</ac:parameter>\n")
+     (when name (format "<ac:parameter ac:name=\"Title\">%s</ac:parameter>\n" name))
+     (when contents (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n" contents))
+     "</ac:structured-macro>")))
+
 (org-export-define-backend
     'confluence
   '((bold . ox-confluence-bold)
@@ -305,7 +322,8 @@ information."
     (table-row . ox-confluence-table-row)
     (table-cell . ox-confluence-table-cell)
     (example-block . ox-confluence-example-block)
-    (template . ox-confluence-template)))
+    (template . ox-confluence-template)
+    (src-block . ox-confluence-src-block)))
 
 ;;;###autoload
 (defun ox-confluence-export ()
