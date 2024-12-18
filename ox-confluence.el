@@ -50,13 +50,15 @@ Uses curl as a backend."
        ((not ox-confluence-token) (error "No token file defined"))
        ((not token) (error "Could not read token from file %s" ox-confluence-token))))
     (let* ((header (format "-H \"Authorization: Bearer %s\"" token))
-           ;; doing url by hand
            (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
       (with-temp-buffer
-        (if (zerop (call-process "curl" nil (current-buffer) nil "--get" header url))
+        (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" header url))
             (progn (goto-char (point-min))
-                   (or (gethash "results" (json-parse-buffer) nil) (error "Could not locate %s in %s. Ensure that page exists" title space)))
-          (error "Error with curl"))))))
+                   (let* ((result (gethash "results" (json-parse-buffer) nil)))
+                     (if result
+                         (gethash "id" result)
+                       (error "Could not locate %s in %s. Ensure that page exists" title space))))
+          (error "Error with curl\n%s" (buffer-string)))))))
 
 (defun ox-confluence-get-page-id-from-link (link)
   "Parse human readable LINK and retuns the page id.
