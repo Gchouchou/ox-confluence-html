@@ -40,6 +40,7 @@ Uses HOST then ox-confluence-host or fails if both are nil.
 Uses curl as a backend."
   (let* ((host (or host ox-confluence-host))
          (token (and ox-confluence-token
+                     (file-exists-p ox-confluence-token)
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-token)
                        (buffer-string))))
