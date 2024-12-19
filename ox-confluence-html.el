@@ -38,6 +38,7 @@ We only want the host name so do not prepend with https or postpend with path."
   "Queries the pageid using TITLE and SPACE.
 Uses HOST then ox-confluence-host or fails if both are nil.
 Uses curl as a backend."
+  (interactive "sPage title: \nsPage space: ")
   (let* ((host (or host ox-confluence-host (error "No host found")))
          (token (and ox-confluence-token
                      (file-exists-p ox-confluence-token)
@@ -58,7 +59,7 @@ Uses curl as a backend."
 (defun ox-confluence-get-page-id-from-link (link)
   "Parse human readable LINK and retuns the page id.
 It will also set ox-confluence-host for the rest of the session."
-  (interactive "sConfluence Page Link:")
+  (interactive "sConfluence Page Link: ")
   (let* ((parsed-uri (url-generic-parse-url link))
          (host (url-host parsed-uri))
          (filename (url-filename parsed-uri))
@@ -84,6 +85,7 @@ It will also set ox-confluence-host for the rest of the session."
   "Upload ATTACHMENT to confluence PAGEID and return attachmentid.
 If OVERRIDE is t, overrides attachment if already present.
 Adds COMMENT to upload."
+  (interactive "sPageId: \nfFile: \nP")
   (if (not (file-exists-p attachment)) (error "Attachment %s does not exist" attachment))
   (let* ((basename (file-name-nondirectory attachment))
          (host (or ox-confluence-host (error "No host found")))
@@ -130,6 +132,55 @@ Adds COMMENT to upload."
     (t (progn
          (message "Attachment %s already exists, not overriding" basename)
          attachmentId)))))
+
+(defun ox-confluence-update-content (pageId file &optional append)
+  "Overwrite contents of confluence page PAGEID with FILE.
+If APPEND is not nil, first query contents and prepend to FILE contents
+before uploading."
+  (interactive "sPageId: \nfFile: \nP")
+  ;; Fetch version number of the page so we can increment it by 1
+  (if (or (null pageId) (not (file-exists-p file)) (not ox-confluence-host))
+      (error "Missing page id %s or file %s or host %s" pageId file ox-confluence-host))
+  (let* ((token (and ox-confluence-token
+                     (file-exists-p ox-confluence-token)
+                     (with-temp-buffer
+                       (insert-file-contents ox-confluence-token)
+                       (buffer-string))))
+         (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
+         (resp (with-temp-buffer
+                 (if (zerop (call-process "curl" nil (current-buffer) nil
+                                          "-sX GET"
+                                          header
+                                          (format "https://%s/rest/api/content/%s" ox-confluence-host pageId)))
+                     (progn (goto-char (point-min))
+                            (json-parse-buffer))
+                   (error "Error with curl"))))
+         (old-body (when-let* ((respb (gethash "body" resp))
+                               (view (gethash "view" respb))
+                               (value (gethash "value" view)))
+                     value))
+         (page-ver (when-let* ((v (gethash "version" resp))
+                               (number (gethash "number" v)))
+                     number))
+         (new-body (concat (when append (concat old-body "\n"))
+                           (with-temp-buffer
+                             (insert-file-contents file)
+                             (buffer-string))))
+         (title (gethash "title" resp))
+         (json `((version . (number . ,(+ page-ver 1)))
+                 (title . ,title)
+                 (type . page)
+                 (body . (storage .
+                                  ((representation . storage)
+                                   (value . ,(format "%s" new-body))))))))
+    (with-temp-buffer
+      (if (zerop (call-process "curl" nil "current-buffer" nil
+                               "-sSX POST"
+                               header
+                               (format "--json '%s'" (json-encode json))
+                               (format "https://%s/restpai/content/%s" ox-confluence-host pageId)))
+          (message "updated page successfully")
+        (error "Error with update")))))
 
 ;;; Transcoders
 
