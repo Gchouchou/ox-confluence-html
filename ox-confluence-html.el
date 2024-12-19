@@ -83,7 +83,7 @@ It will also set ox-confluence-host for the rest of the session."
 
 (defun ox-confluence-update-attachment (pageId attachment &optional override comment)
   "Upload ATTACHMENT to confluence PAGEID and return attachmentid.
-If OVERRIDE is t, overrides attachment if already present.
+If OVERRIDE is non-nil, overrides attachment if already present.
 Adds COMMENT to upload."
   (interactive "sPageId: \nfFile: \nP")
   (if (not (file-exists-p attachment)) (error "Attachment %s does not exist" attachment))
@@ -394,6 +394,7 @@ include html with export html with an iframe tag to the confluence attachment."
            (page_id (or (assoc :confluence-page-id options)
                         (and url (ox-confluence-get-page-id-from-link url))))
            (host ox-confluence-host)
+           (override-attachments (assoc :override-confluence-attachment options))
            (upload-to-confluence (and (assoc :upload-to-confluence options) host page_id)))
       (if upload-to-confluence
           (message "Page_id: %s found, host: %s found, uploading attachments to confluence" page_id host)
@@ -403,8 +404,7 @@ include html with export html with an iframe tag to the confluence attachment."
         (goto-char (point-min))
         (while (re-search-forward "^#\\+include: \"\\([^\"]+\\)\" export html.*$" nil t)
           (let* ((file (match-string 1)))
-            (when upload-to-confluence (ox-confluence-update-attachment page_id file))
-            (message "Replacing line %s" (point))
+            (when upload-to-confluence (ox-confluence-update-attachment page_id file override-attachments))
             ;; TODO confirm the confluence attachment url format
             (replace-match (format "\
 #+begin_export html
@@ -441,15 +441,89 @@ include html with export html with an iframe tag to the confluence attachment."
     (export-block . ox-confluence-export-block)
     (drawer . ox-confluence-drawer)
     (keyword . ox-confluence-keyword))
-  :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                ; page id to upload to
-                   (:confluence-url "CONFLUENCE_URL" nil nil)             ; or the url to upload
-                   (:upload-to-confluence "UPLOAD_TO_CONFLUENCE" nil t))) ; override switch to not upload to confluence
+  :menu-entry '(?f "Export to Confluence"
+                ((?F "As Confluence buffer" ox-confluence-export-as-html)
+                 (?f "As HTML file" )
+                 (?p "As HTML file and upload"
+                     (lambda (a s v b)
+                       (let* ((options (org-export-get-environment 'confluence))
+                              (url (assoc :confluence-url options))
+                              (page_id (or (assoc :confluence-page-id options)
+                                           (and url (ox-confluence-get-page-id-from-link url))))
+                              (file (ox-confluence-export-to-confluence nil s v b)))
+                         (when (and file page_id)
+                           (ox-confluence-update-content
+                            page_id file)))))))
+  :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                                 ; page id to upload to
+                   (:confluence-url "CONFLUENCE_URL" nil nil)                              ; or the url to upload
+                   (:override-confluence-attachment "CONFLUENCE_OVERRIDE_ATTACH" nil nil)  ; override attachments on export
+                   (:upload-to-confluence "UPLOAD_TO_CONFLUENCE" nil t)))                  ; override switch to not upload to confluence
 
 ;;;###autoload
-(defun ox-confluence-export ()
-  "Export current buffer using ox-confluence backend."
+(defun ox-confluence-export-as-html
+    (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to a text buffer.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting buffer should be accessible
+through the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, nothing changes.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Export is done in a buffer named \"*Org CONFLUENCE Export*\", which
+will be displayed when `org-export-show-temporary-export-buffer'
+is non-nil."
   (interactive)
-  (org-export-to-buffer 'confluence "*confluence*"))
+  (org-export-to-buffer 'confluence "*Org CONFLUENCE Export*"
+    async subtreep visible-only body-only ext-plist (lambda () (html-mode))))
+
+(defun ox-confluence-export-to-confluence
+    (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to a HTML file.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting file should be accessible through
+the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, nothing changes.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Return output file's name."
+    (interactive)
+    (let ((outfile (org-export-output-file-name ".html" subtreep)))
+      (org-export-to-file 'latex outfile
+        async subtreep visible-only body-only ext-plist)))
 
 (provide 'ox-confluence-html)
 ;;; ox-confluence-html.el ends here
