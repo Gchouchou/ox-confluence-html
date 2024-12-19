@@ -131,6 +131,8 @@ Adds COMMENT to upload."
          (message "Attachment %s already exists, not overriding" basename)
          attachmentId)))))
 
+;;; Transcoders
+
 ;; formatting
 ;; #+BEGIN_EXAMPLE
 ;;   *bold*                                     # <strong>bold</strong>
@@ -304,6 +306,65 @@ contextual information."
      (when contents (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n" (org-trim contents)))
      "</ac:structured-macro>")))
 
+(defun ox-confluence-export-block (export-block _contents _info)
+  "Transcode a EXPORT-BLOCK element from Org to Confluence format.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (when (string= (org-element-property :type export-block) "HTML")
+    (format "<ac:structured-macro ac:name=\"html\" ac:schema-version=\"1\">\n%s</ac:structured-macro>"
+            (org-remove-indentation (org-element-property :value export-block)))))
+
+(defun ox-confluence-drawer (drawer contents info)
+  "Transcode a DRAWER element from Org to Confluence format.
+CONTENTS holds the contents of the block.  INFO is a plist
+holding contextual information."
+  contents)
+
+(defun ox-confluence-keyword (keyword _contents info)
+  "Transcode a KEYWORD element from Org to HTML.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (let ((key (org-element-property :key keyword))
+	(value (org-element-property :value keyword)))
+    (cond
+     ((string= key "HTML") value)
+     ((string= key "TOC")
+      ;; TODO confirm confluence's Table of content's macro format
+      (format "<ac:structured-macro ac:name=\"TOC\"/>")))))
+
+;;; Pre processing functions
+
+(defun ox-confluence-include-replace (backend)
+  "If BACKEND is confluence, replace includes html with export html.
+This before process function will upload include html files to confluence,
+defined using page_id and host or with confluence_url and then replace
+include html with export html with an iframe tag to the confluence attachment."
+  (when (org-export-derived-backend-p backend 'confluence)
+    (let* ((options (org-export-get-environment 'confluence))
+           (url (assoc :confluence-url options))
+           (page_id (or (assoc :confluence-page-id options)
+                        (and url (ox-confluence-get-page-id-from-link url))))
+           (host ox-confluence-host)
+           (upload-to-confluence (and (assoc :upload-to-confluence options) host page_id)))
+      (if upload-to-confluence
+          (message "Page_id: %s found, host: %s found, uploading attachments to confluence" page_id host)
+        (message "Page_id: %s, host: %s, not uploading to confluence" page_id host))
+      (save-excursion
+        ;; got to top of the page and scan for includes
+        (goto-char (point-min))
+        (while (re-search-forward "^#\\+include: \"\\([^\"]+\\)\" export html.*$" nil t)
+          (let* ((file (match-string 1)))
+            (when upload-to-confluence (ox-confluence-update-attachment page_id file))
+            (message "Replacing line %s" (point))
+            ;; TODO confirm the confluence attachment url format
+            (replace-match (format "\
+#+begin_export html
+<iframe src=\"https://%s/%s/attachment/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"/>
+#+end_export"
+                                   host
+                                   page_id
+                                   (file-name-nondirectory file)))))))))
+
+(add-hook 'org-export-before-processing-functions #'ox-confluence-include-replace)
+
 (org-export-define-backend
     'confluence
   '((bold . ox-confluence-bold)
@@ -326,8 +387,12 @@ contextual information."
     (src-block . ox-confluence-src-block)
     (link . org-html-link)
     (line-break . org-html-line-break)
-    (export-block . org-html-export-block)))
-
+    (export-block . ox-confluence-export-block)
+    (drawer . ox-confluence-drawer)
+    (keyword . ox-confluence-keyword))
+  :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                ; page id to upload to
+                   (:confluence-url "CONFLUENCE_URL" nil nil)             ; or the url to upload
+                   (:upload-to-confluence "UPLOAD_TO_CONFLUENCE" nil t))) ; override switch to not upload to confluence
 
 ;;;###autoload
 (defun ox-confluence-export ()
