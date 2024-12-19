@@ -301,7 +301,7 @@ contextual information."
      (format "<ac:parameter ac:name=\"language\">%s</ac:parameter>\n" lang)
      (when linenumbers "<ac:parameter ac:name=\"linenumbers\">true</ac:parameter>\n")
      (when name (format "<ac:parameter ac:name=\"Title\">%s</ac:parameter>\n" name))
-     (when contents (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n" contents))
+     (when contents (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n" (org-trim contents)))
      "</ac:structured-macro>")))
 
 (org-export-define-backend
@@ -323,7 +323,11 @@ contextual information."
     (table-cell . ox-confluence-table-cell)
     (example-block . ox-confluence-example-block)
     (template . ox-confluence-template)
-    (src-block . ox-confluence-src-block)))
+    (src-block . ox-confluence-src-block)
+    (link . org-html-link)
+    (line-break . org-html-line-break)
+    (export-block . org-html-export-block)))
+
 
 ;;;###autoload
 (defun ox-confluence-export ()
