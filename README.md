@@ -32,27 +32,65 @@ We could use `request.el` but I want to minimize dependencies in case of corpora
 
 # Scoping
 
-## Documentation
+## How it works
+
+Confluence storage format is similar to body only xhtml.
+However, it does not recognize css and you cannot add css.
+The exporter has to strip all attributes and give confluence plain html.
+Some blocks also correspond to structured macros in confluence.
+
+There is a pre-processing function that searches for the following pattern:
+``` org
+#+include "/path/to/file.html" export html
+```
+It then does the following:
+- Upload the file as an attachment to the confluence page with rest api
+- Replace the include statement with an `export html` block embeding the confluence attachment url
+inside an `<iframe>` tag
+- `export html` is then transcoded to a structured `html` macro.
+
+## List of Transcoders or Supported Blocks
+
+Implemented, barebones:
+- bold
+- italic
+- underline
+- strikethrough
+- quote block
+- example block
+- headline
+- section
+- drawer
+- verbatim
+- paragraph
+- plain-list
+- item (no support for task lists)
+- table
+- table-row
+- table-cell (no support for colored tables yet)
+- template
+- src-block
+- line-break
+- export-block (html only)
+
+To be implemented:
+- [ ] table of contents
+- [ ] link and anchors
+- [ ] task lists
+
+## Confluence Storage Format Documentation
 
 We will use the documentation of confluence 9.2 from this page
 https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html.
 Since confluence is propertary software, the format can change and this exporter might break.
-
-## Goals
-
-- Export org file to .html confluence storage abiding format,
-- Upload attachments and update page using confluence page rest api,
-
-## Testing
-
-This repo is impossible to test because I do not have confluence locally to test it.
 
 # Extra
 
 ## Why a new ox-confluence?
 
 Confluence only supports its own wiki markdown in the legacy editor
-which means you can still use the old [package](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el)
+which means you can still use the old
+[package](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el)
 in org contrib is now deprecated. We must now convert to the storage format.
 
 The alternative to converting to confluence markdown is to convert to the 
