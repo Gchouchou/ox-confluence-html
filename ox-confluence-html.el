@@ -32,6 +32,12 @@
 ;; ignore many parameters. Many transcoders are taken from ox-slimhtml and
 ;; ox-html.
 
+;; Two variables have to be set to access Confluence REST api:
+;; `ox-confluence-html-host', the URI of the confluence server,
+;; and `ox-confluence-html-token', the file containing the confluence
+;; access token. See https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html
+;; for instructions on how to create a personal access token.
+
 ;;; Requirements:
 ;;; Package-Requires: ((emacs "27.1"))
 

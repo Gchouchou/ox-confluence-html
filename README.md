@@ -30,7 +30,7 @@ The backend is a modified version of `ox-html` depends on it.
 The exporter relies on the external program `curl` to export files and interact with confluence rest api.
 We could use `request.el` but I want to minimize dependencies in case of corporate restrictions.
 
-# Scoping
+# About
 
 ## How it works
 
@@ -38,6 +38,13 @@ Confluence storage format is similar to body only xhtml.
 However, it does not recognize css and you cannot add css.
 The exporter has to strip all attributes and give confluence plain html.
 Some blocks also correspond to structured macros in confluence.
+
+Two variables have to be set or customized to use Confluence REST api:
+`ox-confluence-html-host`, the URI of the confluence server,
+and `ox-confluence-html-token`, the file containing the confluence
+access token. See https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html
+for instructions on how to create a personal access token.
+Username with password authentication is currently not supported.
 
 There is a pre-processing function that searches for the following pattern:
 ``` org
@@ -81,8 +88,11 @@ To be implemented:
 ## Confluence Storage Format Documentation
 
 We will use the documentation of confluence 9.2 from this page
-https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html.
+https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
 Since confluence is propertary software, the format can change and this exporter might break.
+
+The exporter uses confluence REST api to interact with the page. Documentation link:
+https://docs.atlassian.com/atlassian-confluence/REST/5.7.1/#d3e782
 
 # Extra
 
