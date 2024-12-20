@@ -438,7 +438,7 @@ include html with export html with an iframe tag to the confluence attachment."
             ;; TODO confirm the confluence attachment url format
             (replace-match (format "\
 #+begin_export html
-<iframe src=\"https://%s/%s/attachment/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"></iframe>
+<iframe src=\"https://%s/download/attachment/%s/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"></iframe>
 #+end_export"
                                    host
                                    page_id
