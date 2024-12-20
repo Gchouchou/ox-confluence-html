@@ -1,24 +1,48 @@
-;;; ox-confluence-html --- Confluence Wiki Back-End for Org Export Engine
+;;; ox-confluence-html.el --- Confluence Wiki Back-End for Org Export Engine
 
-;; Author: Justin Yu <jusytinyu@gmail.com>
-;; Keywords: confluence, wiki
+;; Copyright (C) 2024 Justin Yu <jusytinyu@gmail.com>
 
+;; Author: Justin Yu
+;; Keywords: confluence, wiki, text
+;; Homepage: https://github.com/Gchouchou/ox-confluence-html
+;; Created 12 Dec 2024
+;; Version: 0.1
+
+;;; License:
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 ;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
-;; ox-confluence tries to convert org file to confluence storage format.
+;; ox-confluence-html tries to convert org file to confluence storage format.
 ;; Since confluence storage is quite limited, this export backend will
-;; ignore many parameters. Many elements will be taken from ox-slimhtml or
+;; ignore many parameters. Many transcoders are taken from ox-slimhtml and
 ;; ox-html.
 
+;;; Requirements:
+;;; Package-Requires: ((emacs "27.1"))
+
 ;;; Code:
+
 (require 'ox-html)
 (require 'cl-lib)
 (require 'json)
 (require 'url-parse)
 
-
-(defcustom ox-confluence-host nil
+(defcustom ox-confluence-html-host nil
   "The default confluence host name used for exporting.
 It usually has the form of confluence.somewhere.com or somewhere.atlassian.net
 We only want the host name so do not prepend with https or postpend with path."
@@ -26,7 +50,7 @@ We only want the host name so do not prepend with https or postpend with path."
   :type 'string
   :group 'confluence)
 
-(defcustom ox-confluence-token nil
+(defcustom ox-confluence-html-token nil
   "The file that contains the API token to access confluence."
   :safe 'file
   :type 'file
@@ -34,16 +58,16 @@ We only want the host name so do not prepend with https or postpend with path."
 
 ;;; Confluence Curl functions
 
-(defun ox-confluence-get-page-id (title space &optional host)
+(defun ox-confluence-html-get-page-id (title space &optional host)
   "Queries the pageid using TITLE and SPACE.
-Uses HOST then ox-confluence-host or fails if both are nil.
+Uses HOST then ox-confluence-html-host or fails if both are nil.
 Uses curl as a backend."
   (interactive "sPage title: \nsPage space: ")
-  (let* ((host (or host ox-confluence-host (error "No host found")))
-         (token (and ox-confluence-token
-                     (file-exists-p ox-confluence-token)
+  (let* ((host (or host ox-confluence-html-host (error "No host found")))
+         (token (and ox-confluence-html-token
+                     (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
-                       (insert-file-contents ox-confluence-token)
+                       (insert-file-contents ox-confluence-html-token)
                        (buffer-string))))
          (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
          (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
@@ -56,18 +80,18 @@ Uses curl as a backend."
                        (error "Could not locate %s in %s. Ensure that page exists" title space))))
           (error "Error with curl\n%s" (buffer-string))))))
 
-(defun ox-confluence-get-page-id-from-link (link)
+(defun ox-confluence-html-get-page-id-from-link (link)
   "Parse human readable LINK and retuns the page id.
-It will also set ox-confluence-host for the rest of the session."
+It will also set ox-confluence-html-host for the rest of the session."
   (interactive "sConfluence Page Link: ")
   (let* ((parsed-uri (url-generic-parse-url link))
          (host (url-host parsed-uri))
          (filename (url-filename parsed-uri))
-         (segs (string-split filename "/"))
+         (segs (split-string filename "/"))
          (query (car (last segs)))
          (query (when-let* ((match (string-match-p "\\?" query))) (substring query (+ match 1)))))
     ;; set host for the rest of the session
-    (setq ox-confluence-host host)
+    (setq ox-confluence-html-host host)
     (cond
      ;; URL contains the pageId as a query arg
      ;; https://somewhere.com/pages/viewpage.action?pageId=123456
@@ -78,21 +102,21 @@ It will also set ox-confluence-host for the rest of the session."
      ;; URL on Confluence Server contains a space and page title requiring lookup
      ;; https://confluence.somewhere.com/display/ASPACE/Page+Title
      ((and (< 3 (length segs)) (string= (nth 1 segs) "display"))
-      (ox-confluence-get-page-id (nth 3 segs) (nth 2 segs) host))
+      (ox-confluence-html-get-page-id (nth 3 segs) (nth 2 segs) host))
      (t (error "Unkown URL format: %s" link)))))
 
-(defun ox-confluence-update-attachment (pageId attachment &optional override comment)
+(defun ox-confluence-html-update-attachment (pageId attachment &optional override comment)
   "Upload ATTACHMENT to confluence PAGEID and return attachmentid.
 If OVERRIDE is non-nil, overrides attachment if already present.
 Adds COMMENT to upload."
   (interactive "sPageId: \nfFile: \nP")
   (if (not (file-exists-p attachment)) (error "Attachment %s does not exist" attachment))
   (let* ((basename (file-name-nondirectory attachment))
-         (host (or ox-confluence-host (error "No host found")))
-         (token (and ox-confluence-token
-                     (file-exists-p ox-confluence-token)
+         (host (or ox-confluence-html-host (error "No host found")))
+         (token (and ox-confluence-html-token
+                     (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
-                       (insert-file-contents ox-confluence-token)
+                       (insert-file-contents ox-confluence-html-token)
                        (buffer-string))))
          (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
          (uri (format "https://%s/rest/api/content/%s/child/attachment?filename=%s" host pageId basename))
@@ -133,25 +157,25 @@ Adds COMMENT to upload."
          (message "Attachment %s already exists, not overriding" basename)
          attachmentId)))))
 
-(defun ox-confluence-update-content (pageId file &optional append)
+(defun ox-confluence-html-update-content (pageId file &optional append)
   "Overwrite contents of confluence page PAGEID with FILE.
 If APPEND is not nil, first query contents and prepend to FILE contents
 before uploading."
   (interactive "sPageId: \nfFile: \nP")
   ;; Fetch version number of the page so we can increment it by 1
-  (if (or (null pageId) (not (file-exists-p file)) (not ox-confluence-host))
-      (error "Missing page id %s or file %s or host %s" pageId file ox-confluence-host))
-  (let* ((token (and ox-confluence-token
-                     (file-exists-p ox-confluence-token)
+  (if (or (null pageId) (not (file-exists-p file)) (not ox-confluence-html-host))
+      (error "Missing page id %s or file %s or host %s" pageId file ox-confluence-html-host))
+  (let* ((token (and ox-confluence-html-token
+                     (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
-                       (insert-file-contents ox-confluence-token)
+                       (insert-file-contents ox-confluence-html-token)
                        (buffer-string))))
          (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
          (resp (with-temp-buffer
                  (if (zerop (call-process "curl" nil (current-buffer) nil
                                           "-sX GET"
                                           header
-                                          (format "https://%s/rest/api/content/%s" ox-confluence-host pageId)))
+                                          (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
                      (progn (goto-char (point-min))
                             (json-parse-buffer))
                    (error "Error with curl"))))
@@ -178,7 +202,7 @@ before uploading."
                                "-sSX POST"
                                header
                                (format "--json '%s'" (json-encode json))
-                               (format "https://%s/restpai/content/%s" ox-confluence-host pageId)))
+                               (format "https://%s/restpai/content/%s" ox-confluence-html-host pageId)))
           (message "updated page successfully")
         (error "Error with update")))))
 
@@ -194,28 +218,28 @@ before uploading."
 ;;   ~code~                                     # <code>verbatim</code>
 ;; #+END_EXAMPLE
 
-(defun ox-confluence-bold (bold contents info)
+(defun ox-confluence-html-bold (bold contents info)
   "Transcode BOLD from Org to confluence storage format.
 
 CONTENTS is the text with bold markup.
 INFO is a plist holding contextual information."
   (when contents (format "<strong>%s</strong>" contents)))
 
-(defun ox-confluence-italic (italic contents info)
+(defun ox-confluence-html-italic (italic contents info)
   "Transcode ITALIC from Org to confluence storage format.
 
 CONTENTS is the text with italic markup.
 INFO is a plist holding contextual information."
   (when contents (format "<em>%s</em>" contents)))
 
-(defun ox-confluence-strike-through (strike-through contents info)
+(defun ox-confluence-html-strike-through (strike-through contents info)
   "Transcode STRIKE-THROUGH from Org to confluence storage format.
 
 CONTENTS is the text with STRIKE-THROUGH markup.
 INFO is a plist holding contextual information."
   (when contents (format "<span style=\"text-decoration:line-through;\">%s</span>" contents)))
 
-(defun ox-confluence-underline (underline contents info)
+(defun ox-confluence-html-underline (underline contents info)
   "Transcode UNDERLINE from Org to confluence storage format.
 
 CONTENTS is the text with italic markup.
@@ -223,7 +247,7 @@ INFO is a plist holding contextual information."
   (when contents (format "<u>%s</u>" contents)))
 
 
-(defun ox-confluence-verbatim (verbatim contents info)
+(defun ox-confluence-html-verbatim (verbatim contents info)
   "Transcode VERBATIM string from Org to confluence storage format.
 
 CONTENTS is nil.
@@ -232,7 +256,7 @@ INFO is a plist holding contextual information."
                    (org-element-property :value verbatim))))
     (when contents (format "<code>%s</code>" contents))))
 
-(defun ox-confluence-code (code contents info)
+(defun ox-confluence-html-code (code contents info)
   "Transcode CODE string from Org to confluence storage format.
 
 CONTENTS is nil.
@@ -243,7 +267,7 @@ INFO is a plist holding contextual information."
 
 ;; plain text
 
-(defun ox-confluence-plain-text (plain-text info)
+(defun ox-confluence-html-plain-text (plain-text info)
   "Transcode a PLAIN-TEXT string from Org to confluence storage format.
 
 PLAIN-TEXT is the string to transcode.
@@ -251,28 +275,28 @@ INFO is a plist holding contextual information."
   (org-html-encode-plain-text plain-text))
 
 ;; minimal template
-(defun ox-confluence-template (contents info)
+(defun ox-confluence-html-template (contents info)
   "Wrap exported CONTENTS in a minimal template for the confluence backend.
 
 CONTENTS is the string to be exported.
 INFO is a plist containing export options."
   contents)
 
-(defun ox-confluence-paragraph (paragraph contents info)
+(defun ox-confluence-html-paragraph (paragraph contents info)
   "Transcode a PARAGRAPH element from Org to a simple paragraph wrapper.
 
 CONTENTS is the paragraph's text.
 INFO is a plist holding contextual information."
   (format "<p>%s</p>" contents))
 
-(defun ox-confluence-section (section contents info)
+(defun ox-confluence-html-section (section contents info)
   "Transcode SECTION element from Org to confluence storage format.
 
 CONTENTS is the section.
 INFO is a plist holding contextual information"
   contents)
 
-(defun ox-confluence-headline (headline contents info)
+(defun ox-confluence-html-headline (headline contents info)
   "Transcode HEADLINE from Org to confluence storage format.
 
 CONTENTS is the section as defined under the HEADLINE.
@@ -281,7 +305,7 @@ INFO is a plist holding contextual information."
          (level (org-export-get-relative-level headline info)))
     (format "<h%s>%s</h%d>\n%s" level text level (or contents ""))))
 
-(defun ox-confluence-plain-list (plain-list contents info)
+(defun ox-confluence-html-plain-list (plain-list contents info)
   "Transcode a PLAIN-LIST string from Org to confluence storage format.
 
 CONTENTS is the contents of the list element.
@@ -293,14 +317,14 @@ Currently does not support descriptive lists and filters out checkboxes."
                   (unordered "ul"))))
       (format "<%s>%s</%s>" type (or contents "") type))))
 
-(defun ox-confluence-item (item contents info)
+(defun ox-confluence-html-item (item contents info)
   "Transcode an ITEM element from Org to confluence storage format.
 
 CONTENTS holds the contents of the item.
 INFO is a plist holding contextual information."
   (format "<li>%s</li>\n" contents))
 
-(defun ox-confluence-quote-block (quote-block contents info)
+(defun ox-confluence-html-quote-block (quote-block contents info)
   "Transcode a QUOTE-BLOCK element from Org to confluence storage format.
 
 CONTENTS holds the contents of the block.
@@ -309,7 +333,7 @@ INFO is a plist holding contextual information."
 
 ;;; Table stuff
 
-(defun ox-confluence-table (table contents info)
+(defun ox-confluence-html-table (table contents info)
   "Transcode a TABLE element from Org to confluence storage format.
 
 CONTENTS is the contents of the table.
@@ -317,21 +341,21 @@ INFO is a plist holding contextual information."
   (format "<table>\n<tbody>\n%s</tbody>\n</table>" contents))
 
 
-(defun ox-confluence-table-row (table-row contents info)
+(defun ox-confluence-html-table-row (table-row contents info)
   "Transcode a TABLE-ROW element from Org to confluence storage format.
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
   (when contents (format "<tr>\n%s</tr>\n" contents)))
 
-(defun ox-confluence-table-cell (table-cell contents info)
+(defun ox-confluence-html-table-cell (table-cell contents info)
   "Transcode a TABLE-CELL element from Org to confluence storage format.
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
   (when contents (format "<th>%s</th>\n" contents)))
 
-(defun ox-confluence-example-block (example-block contents info)
+(defun ox-confluence-html-example-block (example-block contents info)
   "Transcode a EXAMPLE-BLOCK element from Org to HTML.
 
 CONTENTS is nil.  INFO is a plist holding contextual
@@ -340,7 +364,7 @@ information."
                    (org-element-property :value example-block))))
     (when contents (format "<pre>\n%s</pre>" contents))))
 
-(defun ox-confluence-src-block (src-block contents info)
+(defun ox-confluence-html-src-block (src-block contents info)
   "Transcode a SRC-BLOCK element from Org to HTML.
 
 CONTENTS holds the contents of the item.  INFO is a plist holding
@@ -357,20 +381,20 @@ contextual information."
      (when contents (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n" (org-trim contents)))
      "</ac:structured-macro>")))
 
-(defun ox-confluence-export-block (export-block _contents _info)
+(defun ox-confluence-html-export-block (export-block _contents _info)
   "Transcode a EXPORT-BLOCK element from Org to Confluence format.
 CONTENTS is nil.  INFO is a plist holding contextual information."
   (when (string= (org-element-property :type export-block) "HTML")
     (format "<ac:structured-macro ac:name=\"html\" ac:schema-version=\"1\">\n%s</ac:structured-macro>"
             (org-remove-indentation (org-element-property :value export-block)))))
 
-(defun ox-confluence-drawer (drawer contents info)
+(defun ox-confluence-html-drawer (drawer contents info)
   "Transcode a DRAWER element from Org to Confluence format.
 CONTENTS holds the contents of the block.  INFO is a plist
 holding contextual information."
   contents)
 
-(defun ox-confluence-keyword (keyword _contents info)
+(defun ox-confluence-html-keyword (keyword _contents info)
   "Transcode a KEYWORD element from Org to HTML.
 CONTENTS is nil.  INFO is a plist holding contextual information."
   (let ((key (org-element-property :key keyword))
@@ -383,7 +407,7 @@ CONTENTS is nil.  INFO is a plist holding contextual information."
 
 ;;; Pre processing functions
 
-(defun ox-confluence-include-replace (backend)
+(defun ox-confluence-html-include-replace (backend)
   "If BACKEND is confluence, replace includes html with export html.
 This before process function will upload include html files to confluence,
 defined using page_id and host or with confluence_url and then replace
@@ -392,8 +416,8 @@ include html with export html with an iframe tag to the confluence attachment."
     (let* ((options (org-export-get-environment 'confluence))
            (url (assoc :confluence-url options))
            (page_id (or (assoc :confluence-page-id options)
-                        (and url (ox-confluence-get-page-id-from-link url))))
-           (host ox-confluence-host)
+                        (and url (ox-confluence-html-get-page-id-from-link url))))
+           (host ox-confluence-html-host)
            (override-attachments (assoc :override-confluence-attachment options))
            (upload-to-confluence (and (assoc :upload-to-confluence options) host page_id)))
       (if upload-to-confluence
@@ -404,7 +428,7 @@ include html with export html with an iframe tag to the confluence attachment."
         (goto-char (point-min))
         (while (re-search-forward "^#\\+include: \"\\([^\"]+\\)\" export html.*$" nil t)
           (let* ((file (match-string 1)))
-            (when upload-to-confluence (ox-confluence-update-attachment page_id file override-attachments))
+            (when upload-to-confluence (ox-confluence-html-update-attachment page_id file override-attachments))
             ;; TODO confirm the confluence attachment url format
             (replace-match (format "\
 #+begin_export html
@@ -414,52 +438,52 @@ include html with export html with an iframe tag to the confluence attachment."
                                    page_id
                                    (file-name-nondirectory file)))))))))
 
-(add-hook 'org-export-before-processing-functions #'ox-confluence-include-replace)
+(add-hook 'org-export-before-processing-functions #'ox-confluence-html-include-replace)
 
 (org-export-define-backend
     'confluence
-  '((bold . ox-confluence-bold)
-    (italic . ox-confluence-italic)
-    (strike-through . ox-confluence-strike-through)
-    (code . ox-confluence-code)
-    (verbatim . ox-confluence-verbatim)
-    (underline . ox-confluence-underline)
-    (paragraph . ox-confluence-paragraph)
-    (section . ox-confluence-section)
-    (headline . ox-confluence-headline)
-    (plain-list . ox-confluence-plain-list)
-    (item . ox-confluence-item)
-    (quote-block . ox-confluence-quote-block)
-    (table . ox-confluence-table)
-    (table-row . ox-confluence-table-row)
-    (table-cell . ox-confluence-table-cell)
-    (example-block . ox-confluence-example-block)
-    (template . ox-confluence-template)
-    (src-block . ox-confluence-src-block)
+  '((bold . ox-confluence-html-bold)
+    (italic . ox-confluence-html-italic)
+    (strike-through . ox-confluence-html-strike-through)
+    (code . ox-confluence-html-code)
+    (verbatim . ox-confluence-html-verbatim)
+    (underline . ox-confluence-html-underline)
+    (paragraph . ox-confluence-html-paragraph)
+    (section . ox-confluence-html-section)
+    (headline . ox-confluence-html-headline)
+    (plain-list . ox-confluence-html-plain-list)
+    (item . ox-confluence-html-item)
+    (quote-block . ox-confluence-html-quote-block)
+    (table . ox-confluence-html-table)
+    (table-row . ox-confluence-html-table-row)
+    (table-cell . ox-confluence-html-table-cell)
+    (example-block . ox-confluence-html-example-block)
+    (template . ox-confluence-html-template)
+    (src-block . ox-confluence-html-src-block)
     (link . org-html-link)
     (line-break . org-html-line-break)
-    (export-block . ox-confluence-export-block)
-    (drawer . ox-confluence-drawer)
-    (keyword . ox-confluence-keyword))
+    (export-block . ox-confluence-html-export-block)
+    (drawer . ox-confluence-html-drawer)
+    (keyword . ox-confluence-html-keyword))
   :menu-entry '(?f "Export to Confluence"
-                ((?F "As Confluence buffer" ox-confluence-export-as-html)
-                 (?f "As HTML file" ox-confluence-export-to-confluence)
+                ((?F "As Confluence buffer" ox-confluence-html-export-as-html)
+                 (?f "As HTML file" ox-confluence-html-export-to-confluence)
                  (?p "As HTML file and upload"
                      (lambda (a s v b)
                        (let* ((options (org-export-get-environment 'confluence))
                               (url (assoc :confluence-url options))
                               (page_id (or (assoc :confluence-page-id options)
-                                           (and url (ox-confluence-get-page-id-from-link url)))))
-                         (ox-confluence-export-to-confluence a s v b nil
+                                           (and url (ox-confluence-html-get-page-id-from-link url)))))
+                         (ox-confluence-html-export-to-confluence a s v b nil
                                                              (lambda (file)
-                                                               (ox-confluence-update-content page_id file))))))))
+                                                               (ox-confluence-html-update-content page_id file))))))))
   :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                                 ; page id to upload to
                    (:confluence-url "CONFLUENCE_URL" nil nil)                              ; or the url to upload
                    (:override-confluence-attachment "CONFLUENCE_OVERRIDE_ATTACH" nil nil)  ; override attachments on export
                    (:upload-to-confluence "UPLOAD_TO_CONFLUENCE" nil t)))                  ; override switch to not upload to confluence
 
 ;;;###autoload
-(defun ox-confluence-export-as-html
+(defun ox-confluence-html-export-as-html
     (&optional async subtreep visible-only body-only ext-plist)
   "Export current buffer to a text buffer.
 
@@ -492,7 +516,8 @@ is non-nil."
   (org-export-to-buffer 'confluence "*Org CONFLUENCE Export*"
     async subtreep visible-only body-only ext-plist (lambda () (html-mode))))
 
-(defun ox-confluence-export-to-confluence
+;;;###autoload
+(defun ox-confluence-html-export-to-confluence
     (&optional async subtreep visible-only body-only ext-plist post-process)
   "Export current buffer to a HTML file.
 
