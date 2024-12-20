@@ -474,7 +474,7 @@ include html with export html with an iframe tag to the confluence attachment."
   :menu-entry '(?f "Export to Confluence"
                 ((?F "As Confluence buffer" ox-confluence-html-export-as-html)
                  (?f "As HTML file" ox-confluence-html-export-to-confluence)
-                 (?p "As HTML file and upload"
+                 (?p "As HTML file and update confluence page"
                      (lambda (a s v b)
                        (let* ((options (org-export-get-environment 'confluence))
                               (url (assoc :confluence-url options))
@@ -482,7 +482,16 @@ include html with export html with an iframe tag to the confluence attachment."
                                            (and url (ox-confluence-html-get-page-id-from-link url)))))
                          (ox-confluence-html-export-to-confluence a s v b nil
                                                              (lambda (file)
-                                                               (ox-confluence-html-update-content page_id file))))))))
+                                                               (ox-confluence-html-update-content page_id file))))))
+                 (?a "As HTML file and append to confluence page"
+                     (lambda (a s v b)
+                       (let* ((options (org-export-get-environment 'confluence))
+                              (url (assoc :confluence-url options))
+                              (page_id (or (assoc :confluence-page-id options)
+                                           (and url (ox-confluence-html-get-page-id-from-link url)))))
+                         (ox-confluence-html-export-to-confluence a s v b nil
+                                                             (lambda (file)
+                                                               (ox-confluence-html-update-content page_id file t))))))))
   :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                                 ; page id to upload to
                    (:confluence-url "CONFLUENCE_URL" nil nil)                              ; or the url to upload
                    (:override-confluence-attachment "CONFLUENCE_OVERRIDE_ATTACH" nil nil)  ; override attachments on export
