@@ -36,6 +36,7 @@ However, if the following applies to you, this package could make sense to use:
 
 # Dependencies
 
+The backend is a modified version of `ox-html` depends on it.
 The exporter relies on the external program `curl` to export files and interact with confluence rest api.
 We could use `request.el` but I want to minimize dependencies in case of corporate restrictions.
 
@@ -49,7 +50,7 @@ Since confluence is propertary software, the format can change and this exporter
 
 ## Goals
 
-- Export org file to .xml confluence storage abiding format,
+- Export org file to .html confluence storage abiding format,
 - Upload attachments and update page using confluence page rest api,
 
 ## Testing

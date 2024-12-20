@@ -494,7 +494,7 @@ is non-nil."
     async subtreep visible-only body-only ext-plist (lambda () (html-mode))))
 
 (defun ox-confluence-export-to-confluence
-    (&optional async subtreep visible-only body-only ext-plist)
+    (&optional async subtreep visible-only body-only ext-plist post-process)
   "Export current buffer to a HTML file.
 
 If narrowing is active in the current buffer, only export its
@@ -523,7 +523,7 @@ Return output file's name."
     (interactive)
     (let ((outfile (org-export-output-file-name ".html" subtreep)))
       (org-export-to-file 'confluence outfile
-        async subtreep visible-only body-only ext-plist)))
+        async subtreep visible-only body-only ext-plist post-process)))
 
 (provide 'ox-confluence-html)
 ;;; ox-confluence-html.el ends here
