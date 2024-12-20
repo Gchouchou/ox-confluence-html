@@ -99,16 +99,14 @@ https://docs.atlassian.com/atlassian-confluence/REST/5.7.1/#d3e782
 ## Why a new ox-confluence?
 
 Confluence only supports its own wiki markdown in the legacy editor
-which means you can still use the old
+which means the old
 [package](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el)
-in org contrib is now deprecated. We must now convert to the storage format.
+in org contrib is now deprecated.
 
-The alternative to converting to confluence markdown is to convert to the 
-confluence html format, also called confluence storage format,
+The new format is the 
+confluence support format, similar to xhtml,
 which is the format confluence uses to locally store pages.
 This means you have access to all features while exporting.
-This org exporter aims to export org files to the best of its abilities
-to this format.
 
 ## Why even bother?
 
