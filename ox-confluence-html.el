@@ -443,7 +443,7 @@ include html with export html with an iframe tag to the confluence attachment."
     (keyword . ox-confluence-keyword))
   :menu-entry '(?f "Export to Confluence"
                 ((?F "As Confluence buffer" ox-confluence-export-as-html)
-                 (?f "As HTML file" )
+                 (?f "As HTML file" ox-confluence-export-to-confluence)
                  (?p "As HTML file and upload"
                      (lambda (a s v b)
                        (let* ((options (org-export-get-environment 'confluence))
@@ -522,7 +522,7 @@ file-local settings.
 Return output file's name."
     (interactive)
     (let ((outfile (org-export-output-file-name ".html" subtreep)))
-      (org-export-to-file 'latex outfile
+      (org-export-to-file 'confluence outfile
         async subtreep visible-only body-only ext-plist)))
 
 (provide 'ox-confluence-html)
