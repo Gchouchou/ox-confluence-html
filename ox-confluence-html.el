@@ -449,11 +449,10 @@ include html with export html with an iframe tag to the confluence attachment."
                        (let* ((options (org-export-get-environment 'confluence))
                               (url (assoc :confluence-url options))
                               (page_id (or (assoc :confluence-page-id options)
-                                           (and url (ox-confluence-get-page-id-from-link url))))
-                              (file (ox-confluence-export-to-confluence nil s v b)))
-                         (when (and file page_id)
-                           (ox-confluence-update-content
-                            page_id file)))))))
+                                           (and url (ox-confluence-get-page-id-from-link url)))))
+                         (ox-confluence-export-to-confluence a s v b nil
+                                                             (lambda (file)
+                                                               (ox-confluence-update-content page_id file))))))))
   :options-alist '((:confluence-page-id "PAGE_ID" nil nil)                                 ; page id to upload to
                    (:confluence-url "CONFLUENCE_URL" nil nil)                              ; or the url to upload
                    (:override-confluence-attachment "CONFLUENCE_OVERRIDE_ATTACH" nil nil)  ; override attachments on export
@@ -513,12 +512,16 @@ first.
 When optional argument VISIBLE-ONLY is non-nil, don't export
 contents of hidden elements.
 
-When optional argument BODY-ONLY is non-nil, nothing changes.
+When optional argument BODY-ONLY is non-nil, only return body
+code, without surrounding template.
 
 EXT-PLIST, when provided, is a property list with external
 parameters overriding Org default settings, but still inferior to
 file-local settings.
 
+Optional argument POST-PROCESS is called with FILE as its
+argument and happens asynchronously when ASYNC is non-nil.  It
+has to return a file name, or nil.
 Return output file's name."
     (interactive)
     (let ((outfile (org-export-output-file-name ".html" subtreep)))
