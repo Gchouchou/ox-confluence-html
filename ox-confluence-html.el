@@ -408,8 +408,7 @@ CONTENTS is nil.  INFO is a plist holding contextual information."
     (cond
      ((string= key "HTML") value)
      ((string= key "TOC")
-      ;; TODO confirm confluence's Table of content's macro format
-      (format "<ac:structured-macro ac:name=\"TOC\"/>")))))
+      (format "<ac:structured-macro ac:name=\"toc\">\n</ac:structured-macro>")))))
 
 ;;; Pre processing functions
 
@@ -438,7 +437,7 @@ include html with export html with an iframe tag to the confluence attachment."
             ;; TODO confirm the confluence attachment url format
             (replace-match (format "\
 #+begin_export html
-<iframe src=\"https://%s/download/attachment/%s/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"></iframe>
+<iframe src=\"https://%s/download/attachments/%s/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"></iframe>
 #+end_export"
                                    host
                                    page_id
