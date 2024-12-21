@@ -109,7 +109,7 @@ It will also set ox-confluence-html-host for the rest of the session."
      ;; https://confluence.somewhere.com/display/ASPACE/Page+Title
      ((and (< 3 (length segs)) (string= (nth 1 segs) "display"))
       (ox-confluence-html-get-page-id (nth 3 segs) (nth 2 segs) host))
-     (t (error "Unkown URL format: %s" link)))))
+     (t (error "Unknown URL format: %s" link)))))
 
 (defun ox-confluence-html-update-attachment (pageId attachment &optional override comment)
   "Upload ATTACHMENT to confluence PAGEID and return attachmentid.
