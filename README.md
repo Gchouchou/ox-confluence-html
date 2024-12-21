@@ -29,6 +29,8 @@ On successful load, the backend adds new keys in the export dispatcher.
 The backend is a modified version of `ox-html` depends on it.
 The exporter relies on the external program `curl` to export files and interact with confluence rest api.
 We could use `request.el` but I want to minimize dependencies in case of corporate restrictions.
+To parse REST api responses, I use json, which relies on emacs version 27.1 or later
+and also compiled with json.
 
 # About
 
