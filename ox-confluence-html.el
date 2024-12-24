@@ -84,7 +84,8 @@ Uses curl as a backend."
                     (results (gethash "results" resp))
                     (result (aref results 0))
                     (id (gethash "id" result)))
-              id
+              (progn (message "Page found id=%s title=%s, space=%s" id title space)
+                     id)
             (error "Could not locate %s in %s. Ensure that page exists.\n%s" title space (buffer-string)))
         (error "Error with curl\n%s" (buffer-string))))))
 
@@ -142,7 +143,7 @@ Adds COMMENT to upload."
       (with-temp-buffer
         (when (zerop (call-process "curl" nil (current-buffer) nil
                                    "-sSX"
-                                   "POST"
+                                   "PUT"
                                    (when header "-H") header
                                    "-H" "X-Atlassian-Token: nocheck"
                                    "-F" (format "file=@%s" attachment)
@@ -161,7 +162,7 @@ Adds COMMENT to upload."
         (message "Override is set to true, overriding attachment %s, id=%s" basename attachmentId)
         (call-process "curl" nil (current-buffer) nil
                       "-sSX"
-                      "POST"
+                      "PUT"
                       (when header "-H") header
                       "-H" "X-Atlassian-Token: nocheck"
                       "-F" (format "file=@%s" attachment)
@@ -184,7 +185,7 @@ before uploading."
                      (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-html-token)
-                       (buffer-string))))
+                       (org-trim (buffer-string)))))
          (header (when token (format "Authorization: Bearer %s" token)))
          (resp (with-temp-buffer
                  (if (zerop (call-process "curl" nil (current-buffer) nil
@@ -214,12 +215,13 @@ before uploading."
                                     (value . ,(format "%s" new-body)))))))))
     (with-temp-buffer
       (if (zerop (call-process "curl" nil "current-buffer" nil
-                               "-sSX" "POST"
+                               "-sSX" "PUT"
                                (when header "-H") header
-                               "--json"  (json-serialize json)
+                               "-H" "Content-Type: application/json"
+                               "--data"  (json-serialize json)
                                (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
-          (message "updated page successfully")
-        (error "Error with update")))))
+          (message "Updated Page Successfully")
+        (error "Error with update\n%s" (buffer-string))))))
 
 ;;; Transcoders
 
