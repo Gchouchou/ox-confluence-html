@@ -185,12 +185,12 @@ before uploading."
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-html-token)
                        (buffer-string))))
-         (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
+         (header (when token (format "Authorization: Bearer %s" token)))
          (resp (with-temp-buffer
                  (if (zerop (call-process "curl" nil (current-buffer) nil
-                                          "-sX GET"
-                                          header
-                                          (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
+                                          "-s"
+                                          (when header "-H") header
+                                          (format "https://%s/rest/api/content/%s?expand=body.view,version" ox-confluence-html-host pageId)))
                      (progn (goto-char (point-min))
                             (json-parse-buffer))
                    (error "Error with curl"))))
@@ -214,10 +214,10 @@ before uploading."
                                    (value . ,(format "%s" new-body))))))))
     (with-temp-buffer
       (if (zerop (call-process "curl" nil "current-buffer" nil
-                               "-sSX POST"
-                               header
-                               (format "--json '%s'" (json-encode json))
-                               (format "https://%s/restpai/content/%s" ox-confluence-html-host pageId)))
+                               "-sSX" "POST"
+                               (when header "-H") header
+                               "--json"  (json-encode json)
+                               (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
           (message "updated page successfully")
         (error "Error with update")))))
 
@@ -485,8 +485,8 @@ include html with export html with an iframe tag to the confluence attachment."
                  (?p "As HTML file and update confluence page"
                      (lambda (a s v b)
                        (let* ((options (org-export-get-environment 'confluence))
-                              (url (assoc :confluence-url options))
-                              (page_id (or (assoc :confluence-page-id options)
+                              (url (plist-get options :confluence-url))
+                              (page_id (or (plist-get options :confluence-page-id)
                                            (and url (ox-confluence-html-get-page-id-from-link url)))))
                          (ox-confluence-html-export-to-confluence a s v b nil
                                                              (lambda (file)
@@ -494,8 +494,8 @@ include html with export html with an iframe tag to the confluence attachment."
                  (?a "As HTML file and append to confluence page"
                      (lambda (a s v b)
                        (let* ((options (org-export-get-environment 'confluence))
-                              (url (assoc :confluence-url options))
-                              (page_id (or (assoc :confluence-page-id options)
+                              (url (plist-get options :confluence-url))
+                              (page_id (or (plist-get options :confluence-page-id)
                                            (and url (ox-confluence-html-get-page-id-from-link url)))))
                          (ox-confluence-html-export-to-confluence a s v b nil
                                                              (lambda (file)
