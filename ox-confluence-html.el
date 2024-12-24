@@ -210,9 +210,8 @@ before uploading."
          (json `((version . ((number . ,(format "%s" (+ page-ver 1)))))
                  (title . ,title)
                  (type . "page")
-                 (body . ((storage .
-                                   ((representation . "storage")
-                                    (value . ,(format "%s" new-body)))))))))
+                 (body . ((storage . ((representation . "storage")
+                                      (value . ,(format "%s" new-body)))))))))
     (with-temp-buffer
       (if (zerop (call-process "curl" nil "current-buffer" nil
                                "-sSX" "PUT"
