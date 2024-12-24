@@ -74,17 +74,19 @@ Uses curl as a backend."
                      (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-html-token)
-                       (buffer-string))))
-         (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
+                       (org-trim (buffer-string)))))
+         (header (when token (format "Authorization: Bearer %s" token)))
          (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
-      (with-temp-buffer
-        (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" header url))
-            (progn (goto-char (point-min))
-                   (let* ((result (gethash "results" (json-parse-buffer) nil)))
-                     (if result
-                         (gethash "id" result)
-                       (error "Could not locate %s in %s. Ensure that page exists" title space))))
-          (error "Error with curl\n%s" (buffer-string))))))
+    (with-temp-buffer
+      (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" (when header "-H") header url))
+          (if-let* ((resp (progn (goto-char (point-min))
+                                 (json-parse-buffer)))
+                    (results (gethash "results" resp))
+                    (result (aref results 0))
+                    (id (gethash "id" result)))
+              id
+            (error "Could not locate %s in %s. Ensure that page exists.\n%s" title space (buffer-string)))
+        (error "Error with curl\n%s" (buffer-string))))))
 
 (defun ox-confluence-html-get-page-id-from-link (link)
   "Parse human readable LINK and retuns the page id.
@@ -124,44 +126,51 @@ Adds COMMENT to upload."
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-html-token)
                        (buffer-string))))
-         (header (when token (format "-H \"Authorization: Bearer %s\"" token)))
+         (header (when token (format "Authorization: Bearer %s" token)))
          (uri (format "https://%s/rest/api/content/%s/child/attachment?filename=%s" host pageId basename))
          (attachmentId (with-temp-buffer
-                         (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" header uri))
-                             (progn (goto-char (point-min))
-                                    (when-let* ((result (gethash "results" (json-parse-buffer) nil)))
-                                      (gethash "id" result)))
+                         (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" (when header "-H") header uri))
+                             (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
+                                         (results (gethash "results" resp))
+                                         (result (aref results 0))
+                                         (id (gethash "id" result)))
+                               id)
                            (error "Error with curl\n%s" (buffer-string))))))
     (cond
      ;; adding new attachment
      ((not attachmentId)
       (with-temp-buffer
         (when (zerop (call-process "curl" nil (current-buffer) nil
-                                   "-sSX POST"
-                                   header
-                                   "-H \"X-Atlassian-Token: nocheck\""
-                                   (format "-F \"file=@%s\"" attachment)
-                                   (when comment (format "-F \"comment=%s\"" comment))
+                                   "-sSX"
+                                   "POST"
+                                   (when header "-H") header
+                                   "-H" "X-Atlassian-Token: nocheck"
+                                   "-F" (format "file=@%s" attachment)
+                                   (when comment "-F") (when comment (format "comment=%s" comment))
                                    (format "https://%s/rest/api/content/%s/child/attachment" host pageId)))
           ;; get the attachment id of the newly updated file
           (message "Successfully updated %s, getting attachment id from result." basename)
-          (goto-char (point-min))
-          (when-let* ((result (gethash "results" (json-parse-buffer) nil)))
-            (gethash "id" result)))))
+          (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
+                      (results (gethash "results" resp))
+                      (result (aref results 0))
+                      (id (gethash "id" result)))
+            id))))
      ;; override attachment
-     (override (with-temp-buffer
-                 (message "Override is set to true, overriding attachment %s, id=%s" basename attachmentId)
-                 (call-process "curl" nil (current-buffer) nil
-                               "-sSX POST"
-                               header
-                               "-H \"X-Atlassian-Token: nocheck\""
-                               (format "-F \"file=@%s\"" attachment)
-                               (when comment (format "-F \"comment=%s\"" comment))
-                               (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))
-    ;; not overriding existing
-    (t (progn
-         (message "Attachment %s already exists, not overriding" basename)
-         attachmentId)))))
+     (override
+      (with-temp-buffer
+        (message "Override is set to true, overriding attachment %s, id=%s" basename attachmentId)
+        (call-process "curl" nil (current-buffer) nil
+                      "-sSX"
+                      "POST"
+                      (when header "-H") header
+                      "-H" "X-Atlassian-Token: nocheck"
+                      "-F" (format "file=@%s" attachment)
+                      (when comment "-F") (when comment (format "comment=%s" comment))
+                      (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))
+     ;; not overriding existing
+     (t (progn
+          (message "Attachment %s already exists, not overriding" basename)
+          attachmentId)))))
 
 (defun ox-confluence-html-update-content (pageId file &optional append)
   "Overwrite contents of confluence page PAGEID with FILE.
