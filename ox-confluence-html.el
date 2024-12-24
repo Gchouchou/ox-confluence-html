@@ -206,17 +206,17 @@ before uploading."
                              (insert-file-contents file)
                              (buffer-string))))
          (title (gethash "title" resp))
-         (json `((version . (number . ,(+ page-ver 1)))
+         (json `((version . ((number . ,(format "%s" (+ page-ver 1)))))
                  (title . ,title)
-                 (type . page)
-                 (body . (storage .
-                                  ((representation . storage)
-                                   (value . ,(format "%s" new-body))))))))
+                 (type . "page")
+                 (body . ((storage .
+                                   ((representation . "storage")
+                                    (value . ,(format "%s" new-body)))))))))
     (with-temp-buffer
       (if (zerop (call-process "curl" nil "current-buffer" nil
                                "-sSX" "POST"
                                (when header "-H") header
-                               "--json"  (json-encode json)
+                               "--json"  (json-serialize json)
                                (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
           (message "updated page successfully")
         (error "Error with update")))))
