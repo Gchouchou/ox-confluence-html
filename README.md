@@ -110,16 +110,6 @@ confluence support format, similar to xhtml,
 which is the format confluence uses to locally store pages.
 This means you have access to all features while exporting.
 
-## Why even bother?
-
-Since confluence is usually for corporate environments,
-using of emacs or even downloading this package might not be worth the effort.
-You could be locked into a specific work setup or even blocked from using emacs.
-However, if the following applies to you, this package could make sense to use:
-- you can and want to use emacs org mode,
-- you use confluence to store documents,
-- and you do not have to lock yourself into other editors or workflow environments.
-
 # Acknowledgements
 
 I would like to thank [nbconflux](https://github.com/vericast/nbconflux/tree/master) for inspiration.
