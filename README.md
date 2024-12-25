@@ -34,6 +34,13 @@ and also compiled with json.
 
 # About
 
+## Export Options
+
+- `PAGE_ID` confluence page id to export to
+- `CONFLUENCE_URL` the confluence url to upload to. Alternative to `PAGE_ID` and is lower priority
+- `CONFLUENCE_OVERRRIDE_ATTACH` set to not nil will override attachment during export process, default false.
+- `UPLOAD_TO_CONFLUENCE` default t, if set to nil will prevent uploading buffer to confluence.
+
 ## How it works
 
 Confluence storage format is similar to body only xhtml.
@@ -87,7 +94,7 @@ To be implemented:
 - [ ] link and anchors
 - [ ] task lists
 
-## Confluence Storage Format Documentation
+# Confluence Storage Format Documentation
 
 We will use the documentation of confluence 9.2 from this page
 https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
@@ -110,7 +117,9 @@ confluence support format, similar to xhtml,
 which is the format confluence uses to locally store pages.
 This means you have access to all features while exporting.
 
-# Acknowledgements
+# Similar Projects
 
-I would like to thank [nbconflux](https://github.com/vericast/nbconflux/tree/master) for inspiration.
-I would also thank org-mode and emacs contributors for their generous contributions.
+- [nbconflux](https://github.com/vericast/nbconflux/tree/master) a confluence exporter for jupyter notebooks
+- [ox-confluence](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el) in org contrib for
+confluence markdown
+

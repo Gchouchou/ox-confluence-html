@@ -479,6 +479,7 @@ include html with export html with an iframe tag to the confluence attachment."
     (line-break . org-html-line-break)
     (export-block . ox-confluence-html-export-block)
     (drawer . ox-confluence-html-drawer)
+    (fixed-width . ox-confluence-html-example-block)
     (keyword . ox-confluence-html-keyword))
   :menu-entry '(?f "Export to Confluence"
                 ((?F "As Confluence buffer" ox-confluence-html-export-as-html)
