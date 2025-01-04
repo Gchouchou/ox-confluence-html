@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024 Justin Yu <jusytinyu@gmail.com>
 
 ;; Author: Justin Yu
-;; Keywords: confluence, wiki, text
+;; Keywords: tools, text, wp
 ;; Homepage: https://github.com/Gchouchou/ox-confluence-html
 ;; Created 12 Dec 2024
 ;; Version: 0.1
