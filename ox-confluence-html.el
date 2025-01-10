@@ -133,7 +133,7 @@ Adds COMMENT to upload."
                          (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" (when header "-H") header uri))
                              (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
                                          (results (gethash "results" resp))
-                                         (result (aref results 0))
+                                         (result (when (< 0 (length results)) (aref results 0)))
                                          (id (gethash "id" result)))
                                id)
                            (error "Error with curl\n%s" (buffer-string))))))
@@ -153,7 +153,7 @@ Adds COMMENT to upload."
           (message "Successfully updated %s, getting attachment id from result." basename)
           (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
                       (results (gethash "results" resp))
-                      (result (aref results 0))
+                      (result (when (< 0 (length results)) (aref results 0)))
                       (id (gethash "id" result)))
             id))))
      ;; override attachment
