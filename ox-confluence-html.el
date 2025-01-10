@@ -220,7 +220,7 @@ before uploading."
     (with-temp-buffer
       (if (zerop (apply 'call-process
                         "curl" nil "current-buffer" nil
-                        (delete nil (list "-sSX" "POST"
+                        (delete nil (list "-sSX" "PUT"
                                           (when header "-H") header
                                           "-H" "Content-Type: application/json"
                                           "--data"  (json-serialize json)
@@ -408,7 +408,8 @@ contextual information."
 CONTENTS is nil.  INFO is a plist holding contextual information."
   (when (string= (org-element-property :type export-block) "HTML")
     (format "<ac:structured-macro ac:name=\"html\" ac:schema-version=\"1\">\n%s</ac:structured-macro>"
-            (org-remove-indentation (org-element-property :value export-block)))))
+           (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n"
+		   (org-remove-indentation (org-element-property :value export-block))))))
 
 (defun ox-confluence-html-drawer (drawer contents info)
   "Transcode a DRAWER element from Org to Confluence format.
