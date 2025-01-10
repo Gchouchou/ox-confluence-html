@@ -429,12 +429,12 @@ defined using page_id and host or with confluence_url and then replace
 include html with export html with an iframe tag to the confluence attachment."
   (when (org-export-derived-backend-p backend 'confluence)
     (let* ((options (org-export-get-environment 'confluence))
-           (url (assoc :confluence-url options))
-           (page_id (or (assoc :confluence-page-id options)
+           (url (plist-get options :confluence-url))
+           (page_id (or (plist-get options :confluence-page-id)
                         (and url (ox-confluence-html-get-page-id-from-link url))))
            (host ox-confluence-html-host)
-           (override-attachments (assoc :override-confluence-attachment options))
-           (upload-to-confluence (and (assoc :upload-to-confluence options) host page_id)))
+           (override-attachments (plist-get options :override-confluence-attachment))
+           (upload-to-confluence (and (plist-get options :upload-to-confluence) host page_id)))
       (if upload-to-confluence
           (message "Page_id: %s found, host: %s found, uploading attachments to confluence" page_id host)
         (message "Page_id: %s, host: %s, not uploading to confluence" page_id host))
