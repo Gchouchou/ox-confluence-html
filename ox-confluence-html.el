@@ -127,7 +127,7 @@ Adds COMMENT to upload."
                      (file-exists-p ox-confluence-html-token)
                      (with-temp-buffer
                        (insert-file-contents ox-confluence-html-token)
-                       (buffer-string))))
+                       (org-trim (buffer-string)))))
          (header (when token (format "Authorization: Bearer %s" token)))
          (uri (format "https://%s/rest/api/content/%s/child/attachment?filename=%s" host pageId basename))
          (args (delete nil (list "--get" "-s" (when header "-H") header uri)))
