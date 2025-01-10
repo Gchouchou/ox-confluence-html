@@ -146,7 +146,7 @@ Adds COMMENT to upload."
         (when (zerop (apply 'call-process
                             "curl" nil (current-buffer) nil
                             (delete nil (list "-sSX"
-                                              "PUT"
+                                              "POST"
                                               (when header "-H") header
                                               "-H" "X-Atlassian-Token: nocheck"
                                               "-F" (format "file=@%s" attachment)
@@ -166,7 +166,7 @@ Adds COMMENT to upload."
         (apply 'call-process
                "curl" nil (current-buffer) nil
                (delete nil (list "-sSX"
-                                 "PUT"
+                                 "POST"
                                  (when header "-H") header
                                  "-H" "X-Atlassian-Token: nocheck"
                                  "-F" (format "file=@%s" attachment)
@@ -220,7 +220,7 @@ before uploading."
     (with-temp-buffer
       (if (zerop (apply 'call-process
                         "curl" nil "current-buffer" nil
-                        (delete nil (list "-sSX" "PUT"
+                        (delete nil (list "-sSX" "POST"
                                           (when header "-H") header
                                           "-H" "Content-Type: application/json"
                                           "--data"  (json-serialize json)
