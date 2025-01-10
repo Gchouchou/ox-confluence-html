@@ -76,9 +76,10 @@ Uses curl as a backend."
                        (insert-file-contents ox-confluence-html-token)
                        (org-trim (buffer-string)))))
          (header (when token (format "Authorization: Bearer %s" token)))
-         (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space)))
+         (url (format "https://%s/rest/api/content?title=%s&spaceKey=%s" host title space))
+         (args (delete nil (list "--get" "-s" (when header "-H") header url))))
     (with-temp-buffer
-      (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" (when header "-H") header url))
+      (if (zerop (apply 'call-process "curl" nil (current-buffer) nil args))
           (if-let* ((resp (progn (goto-char (point-min))
                                  (json-parse-buffer)))
                     (results (gethash "results" resp))
@@ -129,8 +130,9 @@ Adds COMMENT to upload."
                        (buffer-string))))
          (header (when token (format "Authorization: Bearer %s" token)))
          (uri (format "https://%s/rest/api/content/%s/child/attachment?filename=%s" host pageId basename))
+         (args (delete nil (list "--get" "-s" (when header "-H") header uri)))
          (attachmentId (with-temp-buffer
-                         (if (zerop (call-process "curl" nil (current-buffer) nil "--get" "-s" (when header "-H") header uri))
+                         (if (zerop (apply 'call-process "curl" nil (current-buffer) nil args))
                              (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
                                          (results (gethash "results" resp))
                                          (result (when (< 0 (length results)) (aref results 0)))
@@ -141,14 +143,15 @@ Adds COMMENT to upload."
      ;; adding new attachment
      ((not attachmentId)
       (with-temp-buffer
-        (when (zerop (call-process "curl" nil (current-buffer) nil
-                                   "-sSX"
-                                   "PUT"
-                                   (when header "-H") header
-                                   "-H" "X-Atlassian-Token: nocheck"
-                                   "-F" (format "file=@%s" attachment)
-                                   (when comment "-F") (when comment (format "comment=%s" comment))
-                                   (format "https://%s/rest/api/content/%s/child/attachment" host pageId)))
+        (when (zerop (apply 'call-process
+                            "curl" nil (current-buffer) nil
+                            (delete nil (list "-sSX"
+                                              "PUT"
+                                              (when header "-H") header
+                                              "-H" "X-Atlassian-Token: nocheck"
+                                              "-F" (format "file=@%s" attachment)
+                                              (when comment "-F") (when comment (format "comment=%s" comment))
+                                              (format "https://%s/rest/api/content/%s/child/attachment" host pageId)))))
           ;; get the attachment id of the newly updated file
           (message "Successfully updated %s, getting attachment id from result." basename)
           (when-let* ((resp (progn (goto-char (point-min)) (json-parse-buffer)))
@@ -160,14 +163,15 @@ Adds COMMENT to upload."
      (override
       (with-temp-buffer
         (message "Override is set to true, overriding attachment %s, id=%s" basename attachmentId)
-        (call-process "curl" nil (current-buffer) nil
-                      "-sSX"
-                      "PUT"
-                      (when header "-H") header
-                      "-H" "X-Atlassian-Token: nocheck"
-                      "-F" (format "file=@%s" attachment)
-                      (when comment "-F") (when comment (format "comment=%s" comment))
-                      (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))
+        (apply 'call-process
+               "curl" nil (current-buffer) nil
+               (delete nil (list "-sSX"
+                                 "PUT"
+                                 (when header "-H") header
+                                 "-H" "X-Atlassian-Token: nocheck"
+                                 "-F" (format "file=@%s" attachment)
+                                 (when comment "-F") (when comment (format "comment=%s" comment))
+                                 (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))))
      ;; not overriding existing
      (t (progn
           (message "Attachment %s already exists, not overriding" basename)
@@ -188,10 +192,11 @@ before uploading."
                        (org-trim (buffer-string)))))
          (header (when token (format "Authorization: Bearer %s" token)))
          (resp (with-temp-buffer
-                 (if (zerop (call-process "curl" nil (current-buffer) nil
-                                          "-s"
-                                          (when header "-H") header
-                                          (format "https://%s/rest/api/content/%s?expand=body.view,version" ox-confluence-html-host pageId)))
+                 (if (zerop (apply 'call-process
+                                   "curl" nil (current-buffer) nil
+                                   (delete nil (list "-s"
+                                                     (when header "-H") header
+                                                     (format "https://%s/rest/api/content/%s?expand=body.view,version" ox-confluence-html-host pageId)))))
                      (progn (goto-char (point-min))
                             (json-parse-buffer))
                    (error "Error with curl"))))
@@ -213,12 +218,13 @@ before uploading."
                  (body . ((storage . ((representation . "storage")
                                       (value . ,(format "%s" new-body)))))))))
     (with-temp-buffer
-      (if (zerop (call-process "curl" nil "current-buffer" nil
-                               "-sSX" "PUT"
-                               (when header "-H") header
-                               "-H" "Content-Type: application/json"
-                               "--data"  (json-serialize json)
-                               (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))
+      (if (zerop (apply 'call-process
+                        "curl" nil "current-buffer" nil
+                        (delete nil (list "-sSX" "PUT"
+                                          (when header "-H") header
+                                          "-H" "Content-Type: application/json"
+                                          "--data"  (json-serialize json)
+                                          (format "https://%s/rest/api/content/%s" ox-confluence-html-host pageId)))))
           (message "Updated Page Successfully")
         (error "Error with update\n%s" (buffer-string))))))
 
