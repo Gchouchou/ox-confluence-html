@@ -148,7 +148,7 @@ Adds COMMENT to upload."
                             (delete nil (list "-sSX"
                                               "POST"
                                               (when header "-H") header
-                                              "-H" "X-Atlassian-Token: nocheck"
+                                              "-H" "X-Atlassian-Token: no-check"
                                               "-F" (format "file=@%s" attachment)
                                               (when comment "-F") (when comment (format "comment=%s" comment))
                                               (format "https://%s/rest/api/content/%s/child/attachment" host pageId)))))
@@ -168,7 +168,7 @@ Adds COMMENT to upload."
                (delete nil (list "-sSX"
                                  "POST"
                                  (when header "-H") header
-                                 "-H" "X-Atlassian-Token: nocheck"
+                                 "-H" "X-Atlassian-Token: no-check"
                                  "-F" (format "file=@%s" attachment)
                                  (when comment "-F") (when comment (format "comment=%s" comment))
                                  (format "https://%s/rest/api/content/%s/child/attachment/%s/data" host pageId attachmentId))))))
