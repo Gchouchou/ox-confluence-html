@@ -196,7 +196,7 @@ before uploading."
                                    "curl" nil (current-buffer) nil
                                    (delete nil (list "-s"
                                                      (when header "-H") header
-                                                     (format "https://%s/rest/api/content/%s?expand=body.view,version" ox-confluence-html-host pageId)))))
+                                                     (format "https://%s/rest/api/content/%s?expand=body.storage,version" ox-confluence-html-host pageId)))))
                      (progn (goto-char (point-min))
                             (json-parse-buffer))
                    (error "Error with curl"))))
