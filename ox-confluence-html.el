@@ -201,7 +201,7 @@ before uploading."
                             (json-parse-buffer))
                    (error "Error with curl"))))
          (old-body (when-let* ((respb (gethash "body" resp))
-                               (view (gethash "view" respb))
+                               (view (gethash "storage" respb))
                                (value (gethash "value" view)))
                      value))
          (page-ver (when-let* ((v (gethash "version" resp))
