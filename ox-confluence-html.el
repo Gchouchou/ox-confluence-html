@@ -375,7 +375,6 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
-  (message "%s" contents)
   (when contents (format "<th>%s</th>\n" contents)))
 
 (defun ox-confluence-html-example-block (example-block contents info)
