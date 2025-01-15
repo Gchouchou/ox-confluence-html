@@ -375,6 +375,7 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
+  (message "%s" contents)
   (when contents (format "<th>%s</th>\n" contents)))
 
 (defun ox-confluence-html-example-block (example-block contents info)
@@ -487,7 +488,9 @@ include html with export html with an iframe tag to the confluence attachment."
     (export-block . ox-confluence-html-export-block)
     (drawer . ox-confluence-html-drawer)
     (fixed-width . ox-confluence-html-example-block)
-    (keyword . ox-confluence-html-keyword))
+    (keyword . ox-confluence-html-keyword)
+    (subscript . org-html-subscript)
+    (superscript . org-html-superscript))
   :menu-entry '(?f "Export to Confluence"
                 ((?F "As Confluence buffer" ox-confluence-html-export-as-html)
                  (?f "As HTML file" ox-confluence-html-export-to-confluence)
