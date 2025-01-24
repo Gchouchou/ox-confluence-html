@@ -379,14 +379,13 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
-  (let* ((table-row (org-element-parent table-cell))
-         (table (org-element-lineage table-cell 'table))
-         ;; just set scope to col on first row blindly
-         (attr (if (and (org-export-table-has-header-p table info)
-                        (= 1 (org-export-table-row-group table-row info)))
-                   " scope=\"col\""
-                 "")))
-    (format "<th%s>%s</th>\n" attr (or contents ""))))
+  (let* ((contents (or contents ""))
+         (table-row (org-element-parent table-cell))
+         (table (org-element-lineage table-cell 'table)))
+    (if (and (org-export-table-has-header-p table info)
+             (= 1 (org-export-table-row-group table-row info)))
+        (format "<th>%s</th>\n" contents)
+      (format "<td>%s</td>\n" contents))))
 
 (defun ox-confluence-html-example-block (example-block contents info)
   "Transcode a EXAMPLE-BLOCK element from Org to HTML.
