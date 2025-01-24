@@ -302,7 +302,11 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the string to be exported.
 INFO is a plist containing export options."
-  contents)
+  (concat
+   (when-let* ((depth (plist-get info :with-toc)))
+     ;; insert table of contents, could customize depth
+     "<ac:structured-macro ac:name=\"toc\">\n</ac:structured-macro>\n\n")
+   contents))
 
 (defun ox-confluence-html-paragraph (paragraph contents info)
   "Transcode a PARAGRAPH element from Org to a simple paragraph wrapper.
@@ -375,7 +379,14 @@ INFO is a plist holding contextual information."
 
 CONTENTS is the contents of the table.
 INFO is a plist holding contextual information."
-  (when contents (format "<th>%s</th>\n" contents)))
+  (let* ((table-row (org-element-parent table-cell))
+         (table (org-element-lineage table-cell 'table))
+         ;; just set scope to col on first row blindly
+         (attr (if (and (org-export-table-has-header-p table info)
+                        (= 1 (org-export-table-row-group table-row info)))
+                   " scope=\"col\""
+                 "")))
+    (format "<th%s>%s</th>\n" attr (or contents ""))))
 
 (defun ox-confluence-html-example-block (example-block contents info)
   "Transcode a EXAMPLE-BLOCK element from Org to HTML.
@@ -454,7 +465,7 @@ include html with export html with an iframe tag to the confluence attachment."
             ;; TODO confirm the confluence attachment url format
             (replace-match (format "\
 #+begin_export html
-<iframe src=\"https://%s/download/attachments/%s/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\" scrolling=\"auto\"></iframe>
+<iframe src=\"https://%s/download/attachments/%s/%s\" width=\"100%%\" height=\"400px\" frameborder=\"0\"></iframe>
 #+end_export"
                                    host
                                    page_id
