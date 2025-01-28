@@ -305,7 +305,12 @@ INFO is a plist containing export options."
   (concat
    (when-let* ((depth (plist-get info :with-toc)))
      ;; insert table of contents, could customize depth
-     "<ac:structured-macro ac:name=\"toc\">\n</ac:structured-macro>\n\n")
+     "\
+<ac:structured-macro ac:name=\"toc\">
+<ac:parameter ac:name=\"outline\">true</ac:parameter>\n
+</ac:structured-macro>
+
+")
    contents))
 
 (defun ox-confluence-html-paragraph (paragraph contents info)
@@ -416,10 +421,14 @@ contextual information."
 (defun ox-confluence-html-export-block (export-block _contents _info)
   "Transcode a EXPORT-BLOCK element from Org to Confluence format.
 CONTENTS is nil.  INFO is a plist holding contextual information."
-  (when (string= (org-element-property :type export-block) "HTML")
+  (cond
+   ((string= (org-element-property :type export-block) "HTML")
     (format "<ac:structured-macro ac:name=\"html\" ac:schema-version=\"1\">\n%s</ac:structured-macro>"
-           (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n"
-		   (org-remove-indentation (org-element-property :value export-block))))))
+            (format "<ac:plain-text-body><![CDATA[%s]]></ac:plain-text-body>\n"
+                    (org-remove-indentation (org-element-property :value export-block)))))
+   ;; if we have an export confluence block we export it directly
+   ((string= (org-element-property :type export-block) "CONFLUENCE")
+    (org-remove-indentation (org-element-property :value export-block)))))
 
 (defun ox-confluence-html-drawer (drawer contents info)
   "Transcode a DRAWER element from Org to Confluence format.
