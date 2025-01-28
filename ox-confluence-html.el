@@ -307,9 +307,7 @@ INFO is a plist containing export options."
      ;; insert table of contents, could customize depth
      "\
 <ac:structured-macro ac:name=\"toc\">
-<ac:parameter ac:name=\"outline\">true</ac:parameter>\n
 </ac:structured-macro>
-
 ")
    contents))
 
