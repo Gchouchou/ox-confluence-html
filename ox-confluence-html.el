@@ -500,6 +500,7 @@ include html with export html with an iframe tag to the confluence attachment."
     (template . ox-confluence-html-template)
     (src-block . ox-confluence-html-src-block)
     (link . org-html-link)
+    (plain-text . ox-confluence-html-plain-text)
     (line-break . org-html-line-break)
     (export-block . ox-confluence-html-export-block)
     (drawer . ox-confluence-html-drawer)
