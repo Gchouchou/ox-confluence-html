@@ -123,3 +123,16 @@ This means you have access to all features while exporting.
 - [ox-confluence](https://github.com/aspiers/orgmode/blob/master/contrib/lisp/ox-confluence.el) in org contrib for
 confluence markdown
 
+
+# Writing an Org Export Backend
+
+Adding a section here on how to write an org exporter.
+
+Please refer to
+
+``` elisp
+(org-element-parse-buffer)
+```
+
+to have the abstract syntax tree of the org file and refer to other org export
+backends (or this one) as a model.
